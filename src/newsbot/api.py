@@ -31,8 +31,18 @@ retraction_monitor = RetractionMonitor(
 heartbeat_runner = HeartbeatRunner(interval_seconds=settings.heartbeat_interval_seconds)
 
 
+def _enforce_startup_preflight() -> None:
+    if not settings.enforce_startup_preflight:
+        return
+    report = evaluate_preflight(settings)
+    if report["production_mode"] and not report["ok"]:
+        issues = "; ".join(report["issues"])
+        raise RuntimeError(f"startup_preflight_failed: {issues}")
+
+
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
+    _enforce_startup_preflight()
     if settings.autopilot_enabled:
         await runner.start()
     if settings.retraction_monitor_enabled:

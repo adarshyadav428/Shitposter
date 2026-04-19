@@ -191,6 +191,11 @@ def render_dashboard_html() -> str:
 
     .k { color: var(--muted); }
 
+    .signal-list {
+      display: grid;
+      gap: 6px;
+    }
+
     button {
       border: 1px solid var(--ring);
       border-radius: 10px;
@@ -265,6 +270,20 @@ def render_dashboard_html() -> str:
       <article class=\"card span-6\">
         <h2>Persistence</h2>
         <div class=\"mini-grid\" id=\"persistence-grid\"></div>
+      </article>
+
+      <article class=\"card span-12\">
+        <h2>Readiness Signals</h2>
+        <div class=\"mini-grid\">
+          <div>
+            <div class=\"metric-note\">Issues</div>
+            <div class=\"signal-list\" id=\"issues-list\"></div>
+          </div>
+          <div>
+            <div class=\"metric-note\">Warnings</div>
+            <div class=\"signal-list\" id=\"warnings-list\"></div>
+          </div>
+        </div>
       </article>
     </section>
   </div>
@@ -353,6 +372,24 @@ def render_dashboard_html() -> str:
       }
     }
 
+    function renderSignalList(id, items, okText) {
+      const root = document.getElementById(id);
+      root.innerHTML = \"\";
+      if (!items || !items.length) {
+        const node = document.createElement(\"div\");
+        node.className = \"mini\";
+        node.innerHTML = '<div class=\"status-ok\"><strong>' + okText + '</strong></div>';
+        root.appendChild(node);
+        return;
+      }
+      for (const item of items) {
+        const node = document.createElement(\"div\");
+        node.className = \"mini\";
+        node.innerHTML = '<div class=\"status-warn\"><strong>' + item + '</strong></div>';
+        root.appendChild(node);
+      }
+    }
+
     async function refresh() {
       try {
         const [stats, events, readiness] = await Promise.all([
@@ -379,6 +416,8 @@ def render_dashboard_html() -> str:
         renderDrops(stats.drop_reasons || {});
         renderChannels(readiness.channels || []);
         renderPersistence(readiness.persistence || {});
+        renderSignalList(\"issues-list\", readiness.issues || [], \"No issues detected\");
+        renderSignalList(\"warnings-list\", readiness.warnings || [], \"No warnings detected\");
 
         setText(\"last-refresh\", \"Last refresh: \" + new Date().toLocaleTimeString());
       } catch (err) {

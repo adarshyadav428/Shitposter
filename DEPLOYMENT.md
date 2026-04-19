@@ -83,6 +83,11 @@ Before launching on a host, run local static preflight:
 make predeploy
 ```
 
+Runtime guard:
+
+- With `APP_ENV=prod` and `ENFORCE_STARTUP_PREFLIGHT=true`, the API fails fast on startup
+  when preflight `issues` are present. This prevents unsafe production boots.
+
 ## 5. Rollback
 
 ```bash

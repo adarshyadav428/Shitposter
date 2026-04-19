@@ -58,6 +58,7 @@ class Settings(BaseSettings):
     )
     heartbeat_enabled: bool = Field(default=False, alias="HEARTBEAT_ENABLED")
     heartbeat_interval_seconds: int = Field(default=300, alias="HEARTBEAT_INTERVAL_SECONDS")
+    enforce_startup_preflight: bool = Field(default=True, alias="ENFORCE_STARTUP_PREFLIGHT")
     admin_api_token: str | None = Field(default=None, alias="ADMIN_API_TOKEN")
     retention_enabled: bool = Field(default=True, alias="RETENTION_ENABLED")
     retention_max_events: int = Field(default=5000, alias="RETENTION_MAX_EVENTS")
