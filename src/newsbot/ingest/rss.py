@@ -9,6 +9,7 @@ import feedparser
 
 from newsbot.domain import RawEvent, Sector, Witness
 from newsbot.ingest.base import Ingestor, SourceSpec
+from newsbot.utils.retry import async_retry
 
 
 class RSSIngestor(Ingestor):
@@ -20,12 +21,16 @@ class RSSIngestor(Ingestor):
     async def poll(self) -> Iterable[RawEvent]:
         timeout = aiohttp.ClientTimeout(total=10)
         headers = {"User-Agent": "newsbot/1.0 (+https://github.com/adarshyadav428/Shitposter)"}
-        try:
+
+        async def _fetch_payload() -> bytes:
             async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
                 async with session.get(self.feed_url) as response:
                     if response.status >= 400:
-                        return []
-                    payload = await response.read()
+                        raise RuntimeError(f"rss_http_{response.status}")
+                    return await response.read()
+
+        try:
+            payload = await async_retry(_fetch_payload, attempts=3, initial_delay=0.25)
         except Exception:
             return []
 

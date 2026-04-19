@@ -6,6 +6,7 @@ import httpx
 
 from newsbot.config import settings
 from newsbot.publish.base import NoopPublisher, Publisher
+from newsbot.utils.retry import async_retry
 
 
 class TelegramPublisher(Publisher):
@@ -23,7 +24,12 @@ class TelegramPublisher(Publisher):
             "disable_web_page_preview": True,
         }
         async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.post(url, json=payload)
+            response = await async_retry(
+                lambda: client.post(url, json=payload),
+                attempts=3,
+                initial_delay=0.5,
+                retriable_exceptions=(httpx.RequestError,),
+            )
         response.raise_for_status()
         body = response.json()
         if not body.get("ok"):
@@ -44,7 +50,12 @@ class MastodonPublisher(Publisher):
         headers = {"Authorization": f"Bearer {self.access_token}"}
         payload = {"status": text}
         async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.post(url, headers=headers, data=payload)
+            response = await async_retry(
+                lambda: client.post(url, headers=headers, data=payload),
+                attempts=3,
+                initial_delay=0.5,
+                retriable_exceptions=(httpx.RequestError,),
+            )
         response.raise_for_status()
         body = response.json()
         return f"mastodon:{body.get('id', 'unknown')}"
@@ -65,7 +76,12 @@ class BlueskyPublisher(Publisher):
 
     async def publish(self, text: str) -> str:
         async with httpx.AsyncClient(timeout=20.0) as client:
-            session = await self._create_session(client)
+            session = await async_retry(
+                lambda: self._create_session(client),
+                attempts=3,
+                initial_delay=0.5,
+                retriable_exceptions=(httpx.RequestError, httpx.HTTPStatusError),
+            )
             access_jwt = session["accessJwt"]
             did = session["did"]
             payload = {
@@ -77,10 +93,15 @@ class BlueskyPublisher(Publisher):
                     "createdAt": self._timestamp(),
                 },
             }
-            response = await client.post(
-                f"{self.service_url}/xrpc/com.atproto.repo.createRecord",
-                headers={"Authorization": f"Bearer {access_jwt}"},
-                json=payload,
+            response = await async_retry(
+                lambda: client.post(
+                    f"{self.service_url}/xrpc/com.atproto.repo.createRecord",
+                    headers={"Authorization": f"Bearer {access_jwt}"},
+                    json=payload,
+                ),
+                attempts=3,
+                initial_delay=0.5,
+                retriable_exceptions=(httpx.RequestError,),
             )
         response.raise_for_status()
         body = response.json()

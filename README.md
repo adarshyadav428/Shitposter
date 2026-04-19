@@ -97,3 +97,4 @@ This repository implements a production-oriented autonomous breaking-news system
 
 - This codebase is designed to run with zero manual intervention once configured.
 - Safety defaults are strict; uncertain events are dropped.
+- RSS polling and outbound publisher calls use retry with exponential backoff.
