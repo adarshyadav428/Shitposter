@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check src/ tests/ scripts/
+      - run: ruff format --check src/ tests/ scripts/
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: shitposter_test
+          POSTGRES_USER: shitposter
+          POSTGRES_PASSWORD: shitposter
+        ports: ["5432:5432"]
+        options: >
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev]"
+          python -m spacy download en_core_web_sm
+      - name: Run tests
+        env:
+          DATABASE_URL: "postgresql+psycopg://shitposter:shitposter@localhost:5432/shitposter_test"
+          REDIS_URL: "redis://localhost:6379/1"
+          ANTHROPIC_API_KEY: "test-not-real"
+        run: pytest tests/ -v --tb=short
