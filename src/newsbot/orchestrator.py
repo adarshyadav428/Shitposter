@@ -97,9 +97,12 @@ class Orchestrator:
         event = self.store.get_event(event_id)
         if event is None:
             return False
+        if self.store.is_retracted(event_id):
+            return False
         for witness in event.witnesses:
             new_score = self.reputation_model.mark_retraction(witness.source_id)
             self.store.source_reputation[witness.source_id] = new_score
         triggered = self.circuit_breaker.record_retraction(event.sector)
         await self.fanout.publish_correction(event_id, reason)
+        self.store.mark_retracted(event_id)
         return triggered

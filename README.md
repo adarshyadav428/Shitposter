@@ -50,6 +50,10 @@ This repository implements a production-oriented autonomous breaking-news system
 - `GET /admin/autopilot`
 - `POST /admin/autopilot/start`
 - `POST /admin/autopilot/stop`
+- `GET /admin/retraction-monitor`
+- `POST /admin/retraction-monitor/start`
+- `POST /admin/retraction-monitor/stop`
+- `POST /admin/retraction-monitor/scan`
 
 ## Source Fleet
 
@@ -61,12 +65,29 @@ This repository implements a production-oriented autonomous breaking-news system
    - `AUTOPILOT_ENABLED`
    - `POLL_INTERVAL_SECONDS`
 
+## Publishers
+
+- Telegram, Bluesky, and Mastodon publishers are implemented.
+- If credentials are missing, channels fall back to safe no-op publishing.
+- Configure with:
+   - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
+   - `BLUESKY_IDENTIFIER`, `BLUESKY_APP_PASSWORD`
+   - `MASTODON_BASE_URL`, `MASTODON_ACCESS_TOKEN`
+
 ## Durability
 
 - Runtime state is snapshotted to disk by default.
 - Configure with:
    - `ENABLE_STATE_SNAPSHOT`
    - `STATE_SNAPSHOT_PATH`
+
+## Retraction Monitoring
+
+- Background monitor periodically rescans source URLs.
+- If content changes and contains correction-like keywords, it auto-publishes a correction.
+- Configure with:
+   - `RETRACTION_MONITOR_ENABLED`
+   - `RETRACTION_MONITOR_INTERVAL_SECONDS`
 
 ## Notes
 

@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     telegram_enabled: bool = Field(default=False, alias="TELEGRAM_ENABLED")
     bluesky_enabled: bool = Field(default=False, alias="BLUESKY_ENABLED")
     mastodon_enabled: bool = Field(default=False, alias="MASTODON_ENABLED")
+    telegram_bot_token: str | None = Field(default=None, alias="TELEGRAM_BOT_TOKEN")
+    telegram_chat_id: str | None = Field(default=None, alias="TELEGRAM_CHAT_ID")
+    bluesky_identifier: str | None = Field(default=None, alias="BLUESKY_IDENTIFIER")
+    bluesky_app_password: str | None = Field(default=None, alias="BLUESKY_APP_PASSWORD")
+    mastodon_base_url: str | None = Field(default=None, alias="MASTODON_BASE_URL")
+    mastodon_access_token: str | None = Field(default=None, alias="MASTODON_ACCESS_TOKEN")
 
     use_mock_ingestors: bool = Field(default=True, alias="USE_MOCK_INGESTORS")
     enable_real_rss: bool = Field(default=False, alias="ENABLE_REAL_RSS")
@@ -36,6 +42,10 @@ class Settings(BaseSettings):
     enable_state_snapshot: bool = Field(default=True, alias="ENABLE_STATE_SNAPSHOT")
     state_snapshot_path: str = Field(
         default=".state/newsbot_state.json", alias="STATE_SNAPSHOT_PATH"
+    )
+    retraction_monitor_enabled: bool = Field(default=True, alias="RETRACTION_MONITOR_ENABLED")
+    retraction_monitor_interval_seconds: int = Field(
+        default=300, alias="RETRACTION_MONITOR_INTERVAL_SECONDS"
     )
 
     global_pause: bool = Field(default=False, alias="GLOBAL_PAUSE")

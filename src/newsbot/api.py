@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException, Response
 from newsbot.config import settings
 from newsbot.feed import render_events_json, render_rss_xml
 from newsbot.main import build_default_orchestrator
+from newsbot.retraction_monitor import RetractionMonitor
 from newsbot.runtime import AutopilotRunner
 
 orchestrator = build_default_orchestrator()
@@ -15,15 +16,22 @@ runner = AutopilotRunner(
     poll_interval_seconds=settings.poll_interval_seconds,
     snapshot_path=settings.state_snapshot_path if settings.enable_state_snapshot else None,
 )
+retraction_monitor = RetractionMonitor(
+    orchestrator=orchestrator,
+    interval_seconds=settings.retraction_monitor_interval_seconds,
+)
 
 
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
     if settings.autopilot_enabled:
         await runner.start()
+    if settings.retraction_monitor_enabled:
+        await retraction_monitor.start()
     try:
         yield
     finally:
+        await retraction_monitor.stop()
         await runner.stop()
 
 
@@ -158,3 +166,26 @@ async def autopilot_start() -> dict:
 async def autopilot_stop() -> dict:
     stopped = await runner.stop()
     return {"stopped": stopped, "status": runner.status()}
+
+
+@app.get("/admin/retraction-monitor")
+async def retraction_monitor_status() -> dict:
+    return retraction_monitor.status()
+
+
+@app.post("/admin/retraction-monitor/start")
+async def retraction_monitor_start() -> dict:
+    started = await retraction_monitor.start()
+    return {"started": started, "status": retraction_monitor.status()}
+
+
+@app.post("/admin/retraction-monitor/stop")
+async def retraction_monitor_stop() -> dict:
+    stopped = await retraction_monitor.stop()
+    return {"stopped": stopped, "status": retraction_monitor.status()}
+
+
+@app.post("/admin/retraction-monitor/scan")
+async def retraction_monitor_scan() -> dict[str, int]:
+    triggered = await retraction_monitor.scan_once()
+    return {"triggered": triggered}

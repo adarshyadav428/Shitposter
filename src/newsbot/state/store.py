@@ -19,6 +19,7 @@ class StateStore:
     def __init__(self, x_monthly_budget: int, x_correction_budget: int) -> None:
         self.events: dict[str, CanonicalEvent] = {}
         self.publications: list[PublicationRecord] = []
+        self.retracted_event_ids: set[str] = set()
         self.global_pause: bool = False
         self.sector_paused: dict[Sector, bool] = defaultdict(bool)
         self.source_reputation: dict[str, float] = {}
@@ -44,6 +45,12 @@ class StateStore:
 
     def list_publications(self, limit: int = 100) -> list[PublicationRecord]:
         return self.publications[-limit:]
+
+    def mark_retracted(self, event_id: str) -> None:
+        self.retracted_event_ids.add(event_id)
+
+    def is_retracted(self, event_id: str) -> bool:
+        return event_id in self.retracted_event_ids
 
     def is_paused(self, sector: Sector) -> bool:
         return self.global_pause or self.sector_paused.get(sector, False)
@@ -76,6 +83,7 @@ class StateStore:
                 }
                 for row in self.publications
             ],
+            "retracted_event_ids": sorted(self.retracted_event_ids),
             "global_pause": self.global_pause,
             "sector_paused": {k.value: v for k, v in self.sector_paused.items()},
             "source_reputation": self.source_reputation,
@@ -119,6 +127,8 @@ class StateStore:
                     payload=row["payload"],
                 )
             )
+
+        store.retracted_event_ids = set(payload.get("retracted_event_ids", []))
 
         for event in payload.get("events", []):
             built = cls._event_from_dict(event)
