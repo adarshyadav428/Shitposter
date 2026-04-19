@@ -9,6 +9,7 @@ from typing import Awaitable, Callable
 import httpx
 
 from newsbot.orchestrator import Orchestrator
+from newsbot.telemetry import set_retraction_monitor_running
 
 Fetcher = Callable[[str], Awaitable[str | None]]
 
@@ -37,6 +38,7 @@ class RetractionMonitor:
         if self.is_running():
             return False
         self._task = asyncio.create_task(self._loop(), name="newsbot-retraction-monitor")
+        set_retraction_monitor_running(True)
         return True
 
     async def stop(self) -> bool:
@@ -46,6 +48,7 @@ class RetractionMonitor:
         with contextlib.suppress(asyncio.CancelledError):
             await self._task
         self._task = None
+        set_retraction_monitor_running(False)
         return True
 
     def status(self) -> dict:

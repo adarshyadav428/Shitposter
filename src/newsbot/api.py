@@ -9,6 +9,7 @@ from newsbot.feed import render_events_json, render_rss_xml
 from newsbot.main import build_default_orchestrator
 from newsbot.retraction_monitor import RetractionMonitor
 from newsbot.runtime import AutopilotRunner
+from newsbot.telemetry import render_metrics
 
 orchestrator = build_default_orchestrator()
 runner = AutopilotRunner(
@@ -41,6 +42,12 @@ app = FastAPI(title="Autonomous News Broadcaster", version="0.1.0", lifespan=_li
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/metrics")
+async def metrics() -> Response:
+    payload, content_type = render_metrics()
+    return Response(content=payload, media_type=content_type)
 
 
 @app.post("/run-once")

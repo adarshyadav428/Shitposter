@@ -7,6 +7,7 @@ from newsbot.publish.base import NoopPublisher, Publisher
 from newsbot.publish.channels import build_publishers
 from newsbot.publish.x_policy import can_publish_x, can_publish_x_correction
 from newsbot.state.store import FailedPublicationRecord, PublicationRecord, StateStore
+from newsbot.telemetry import observe_publish_failure
 
 
 class Fanout:
@@ -29,6 +30,7 @@ class Fanout:
                 self.store.add_failed_publication(
                     FailedPublicationRecord(event_id, publisher.name, now, text, error)
                 )
+                observe_publish_failure(publisher.name)
 
         can_x, reason = can_publish_x(self.store)
         if can_x:
@@ -44,6 +46,7 @@ class Fanout:
                 self.store.add_failed_publication(
                     FailedPublicationRecord(event_id, "x", now, text, error)
                 )
+                observe_publish_failure("x")
         else:
             out["x"] = f"skipped:{reason}"
 
@@ -66,6 +69,7 @@ class Fanout:
                 self.store.add_failed_publication(
                     FailedPublicationRecord(event_id, publisher.name, now, correction_text, error)
                 )
+                observe_publish_failure(publisher.name)
 
         can_x, reason = can_publish_x_correction(self.store)
         if can_x and settings.x_enabled:
@@ -80,6 +84,7 @@ class Fanout:
                 self.store.add_failed_publication(
                     FailedPublicationRecord(event_id, "x", now, correction_text, error)
                 )
+                observe_publish_failure("x")
         else:
             out["x"] = f"skipped:{reason}"
 

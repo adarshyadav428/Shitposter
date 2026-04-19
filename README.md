@@ -37,6 +37,7 @@ This repository implements a production-oriented autonomous breaking-news system
 ## API
 
 - `GET /health`
+- `GET /metrics`
 - `GET /stats`
 - `GET /events`
 - `GET /events.json`

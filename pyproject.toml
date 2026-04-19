@@ -9,6 +9,7 @@ dependencies = [
   "feedparser>=6.0.11",
   "fastapi>=0.115.5",
   "httpx>=0.28.0",
+  "prometheus-client>=0.21.0",
   "pydantic>=2.10.0",
   "pydantic-settings>=2.6.1",
   "redis>=5.2.1",

@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 
 from newsbot.orchestrator import Orchestrator
 from newsbot.state.snapshot import save_snapshot
+from newsbot.telemetry import set_autopilot_running
 
 
 class AutopilotRunner:
@@ -30,6 +31,7 @@ class AutopilotRunner:
         if self.is_running():
             return False
         self._task = asyncio.create_task(self._loop(), name="newsbot-autopilot")
+        set_autopilot_running(True)
         return True
 
     async def stop(self) -> bool:
@@ -41,6 +43,7 @@ class AutopilotRunner:
         if self.snapshot_path:
             save_snapshot(self.snapshot_path, self.orchestrator.store)
         self._task = None
+        set_autopilot_running(False)
         return True
 
     async def run_once_now(self) -> dict[str, int]:

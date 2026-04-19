@@ -14,6 +14,7 @@ from newsbot.publish.fanout import Fanout
 from newsbot.state.reputation import ReputationModel
 from newsbot.state.store import StateStore
 from newsbot.survival.circuit_breaker import CircuitBreaker
+from newsbot.telemetry import observe_retractions, observe_run
 
 
 class Orchestrator:
@@ -116,12 +117,14 @@ class Orchestrator:
                 self.store.source_reputation[witness.source_id] = new_score
             published += 1
 
-        return {
+        stats = {
             "raw": len(raw_events),
             "accepted": accepted,
             "published": published,
             "dropped": dropped,
         }
+        observe_run(stats)
+        return stats
 
     def get_ingestor_stats(self) -> dict[str, dict[str, int | str | None]]:
         return self.ingestor_stats
@@ -148,4 +151,5 @@ class Orchestrator:
         triggered = self.circuit_breaker.record_retraction(event.sector)
         await self.fanout.publish_correction(event_id, reason)
         self.store.mark_retracted(event_id)
+        observe_retractions(1)
         return triggered
