@@ -1,24 +1,16 @@
-"""Shadow mode: run the full pipeline but block the X publisher.
-
-Flip ENV=shadow in .env and the X publisher will refuse via kill-switch.
-This script just engages the kill switch and confirms state.
-"""
 from __future__ import annotations
 
 import asyncio
 
-from src.config import get_settings
-from src.state.redis_bus import client
+from newsbot.main import build_default_orchestrator
 
 
 async def main() -> None:
-    settings = get_settings()
-    r = client()
-    await r.set(settings.kill_switch_key, "1")
-    val = await r.get(settings.kill_switch_key)
-    print(f"kill switch engaged: {val!r}")
-    print("Telegram, Bluesky, Mastodon, and site will still publish.")
-    print("Run `curl -XPOST http://localhost:8000/admin/resume` to lift.")
+    orchestrator = build_default_orchestrator()
+    stats = await orchestrator.run_once()
+    print("shadow run stats", stats)
+    for publication in orchestrator.store.list_publications(20):
+        print(publication.channel, publication.payload[:120])
 
 
 if __name__ == "__main__":
