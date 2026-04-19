@@ -42,6 +42,7 @@ This repository implements a production-oriented autonomous breaking-news system
 - `GET /metrics`
 - `GET /stats`
 - `GET /events`
+- `GET /events/{event_id}`
 - `GET /events.json`
 - `GET /rss.xml`
 - `GET /admin/publications`

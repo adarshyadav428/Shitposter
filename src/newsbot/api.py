@@ -96,9 +96,12 @@ async def stats() -> dict:
 
 
 @app.get("/events")
-async def events() -> list[dict]:
+async def events(limit: int = 100, sector: str | None = None) -> list[dict]:
     out = []
-    for event in orchestrator.store.list_events():
+    rows = orchestrator.store.list_events()
+    if sector:
+        rows = [event for event in rows if event.sector.value == sector]
+    for event in rows[:limit]:
         out.append(
             {
                 "event_id": event.event_id,
@@ -109,6 +112,47 @@ async def events() -> list[dict]:
             }
         )
     return out
+
+
+@app.get("/events/{event_id}")
+async def event_detail(event_id: str) -> dict:
+    event = orchestrator.store.get_event(event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="event_not_found")
+
+    related_publications = [
+        row for row in orchestrator.store.list_publications(limit=500) if row.event_id == event_id
+    ]
+    return {
+        "event_id": event.event_id,
+        "sector": event.sector.value,
+        "headline": event.headline,
+        "body": event.body,
+        "first_seen_at": event.first_seen_at.isoformat(),
+        "updated_at": event.updated_at.isoformat(),
+        "entities": sorted(event.entities),
+        "witnesses": [
+            {
+                "source_id": witness.source_id,
+                "source_family": witness.source_family,
+                "source_tier": int(witness.source_tier),
+                "reputation": witness.reputation,
+                "seen_at": witness.seen_at.isoformat(),
+                "url": witness.url,
+            }
+            for witness in event.witnesses
+        ],
+        "published": orchestrator.store.is_published(event_id),
+        "retracted": orchestrator.store.is_retracted(event_id),
+        "publications": [
+            {
+                "channel": row.channel,
+                "created_at": row.created_at.isoformat(),
+                "payload": row.payload,
+            }
+            for row in related_publications
+        ],
+    }
 
 
 @app.get("/events.json")
