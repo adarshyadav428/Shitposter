@@ -103,6 +103,8 @@ This repository implements a production-oriented autonomous breaking-news system
    - `RETENTION_MAX_PUBLICATIONS`
    - `RETENTION_MAX_FAILED_PUBLICATIONS`
    - `RETENTION_MAX_DROP_SAMPLES`
+- When `STATE_BACKEND=sqlite` and the SQLite file is empty, the service will import
+   existing JSON snapshot data once (if present) to ease backend migration.
 
 ## Retraction Monitoring
 
