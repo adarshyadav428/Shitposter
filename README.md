@@ -1,39 +1,46 @@
-# Shitposter
+# Autonomous News Broadcaster
 
-Autonomous breaking-news broadcaster for geopolitics, macro, and crypto. Ingests
-multi-tier sources, clusters corroborating witnesses, composes short copy with
-Claude under a strict hallucination-prevention loop, and fans out to Telegram
-(primary), Bluesky, Mastodon, an RSS feed, and X (budgeted).
+This repository implements a production-oriented autonomous breaking-news system with hard verification gates and anti-platform-suppression controls.
 
-Design write-up lives in the approved plan file. See `src/pipeline/verify.py`
-for the publish-gate, `src/llm/judge.py` for the hallucination guard, and
-`src/publish/fanout.py` for the multi-platform fanout.
+## What It Solves
 
-## Quickstart
+- Latency vs verification: tiered publish gates by source quality and independent witness count.
+- Hallucination risk: composition must pass deterministic claim checks.
+- X survivability: budget caps, cadence jitter, warmup gate, and kill switch.
 
-```bash
-cp .env.example .env
-# fill in ANTHROPIC_API_KEY, TELEGRAM_*, X_*, BLUESKY_*
-docker compose up -d postgres redis
-docker compose run --rm app alembic upgrade head
-docker compose run --rm app python -m scripts.seed_sources
-docker compose up -d
-```
+## Core Pipeline
 
-Open `http://localhost:8000/stats`. Kill-switch: `POST /admin/pause`.
+1. Ingest from high-trust and medium-trust sources.
+2. Dedupe and cluster by entity overlap and simhash distance.
+3. Verify with hard gates:
+   - one Tier 1 source can publish immediately
+   - two independent Tier 2 sources can publish
+   - one Tier 2 source alone is held and expires
+   - Tier 3 alone never publishes
+4. Compose + judge from extracted claims only.
+5. Fanout to Telegram, Bluesky, Mastodon, RSS, X (optional).
 
-## Stages
+## Run Locally
 
-```
-INGEST -> DEDUPE+CLUSTER -> VERIFY -> COMPOSE+JUDGE -> PUBLISH
-```
+1. Copy `.env.example` to `.env` and set required secrets.
+2. Install deps:
+   - `pip install -e .[dev]`
+3. Start API:
+   - `uvicorn newsbot.api:app --reload`
 
-Each stage reads/writes a Redis Stream; state lives in Postgres.
+## API
 
-## Verification plan
+- `GET /health`
+- `GET /stats`
+- `GET /events`
+- `POST /admin/pause`
+- `POST /admin/resume`
+- `POST /admin/retract/{event_id}`
+- `GET /admin/sources`
+- `GET /admin/circuit`
+- `GET /admin/budget`
 
-1. `python -m scripts.backtest events.jsonl` — precision/recall/latency.
-2. `python -m scripts.shadow_run` — run live but block X writes.
-3. Canary on X at 10 posts/mo for two weeks with nightly
-   `python -m scripts.shadowban_probe <handle>`.
-4. Promote to 40 posts/mo + 2 satellite accounts.
+## Notes
+
+- This codebase is designed to run with zero manual intervention once configured.
+- Safety defaults are strict; uncertain events are dropped.
