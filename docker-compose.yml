@@ -1,0 +1,22 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: newsbot-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save "" --appendonly no
+
+  app:
+    image: python:3.12-slim
+    container_name: newsbot-app
+    working_dir: /app
+    volumes:
+      - ./:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "pip install -e . && uvicorn newsbot.api:app --host 0.0.0.0 --port 8000"
