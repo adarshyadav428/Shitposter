@@ -41,6 +41,7 @@ This repository implements a production-oriented autonomous breaking-news system
 - Production env template: `.env.production.example`
 - Deployment runbook: `DEPLOYMENT.md`
 - Release image workflow: `.github/workflows/release-image.yml`
+- Self-hosted deploy workflow: `.github/workflows/deploy-self-hosted.yml`
 - Production compose stack: `docker-compose.prod.yml`
 
 ## API

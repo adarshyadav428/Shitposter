@@ -5,6 +5,7 @@
 GitHub Actions builds and pushes a GHCR image via:
 
 - `.github/workflows/release-image.yml`
+- Optional server deploy workflow: `.github/workflows/deploy-self-hosted.yml`
 
 Image naming:
 
@@ -28,6 +29,23 @@ export NEWSBOT_IMAGE=ghcr.io/<owner>/autonomous-news-broadcaster:latest
 docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d
 ```
+
+## 3b. One-click deploy from GitHub Actions
+
+Configure repository secrets:
+
+- `DEPLOY_HOST`
+- `DEPLOY_USER`
+- `DEPLOY_SSH_KEY`
+- `DEPLOY_PORT` (optional, default `22`)
+- `DEPLOY_APP_DIR` (directory containing `docker-compose.prod.yml`)
+- `GHCR_USER`
+- `GHCR_PAT` (read:packages)
+
+Then run workflow:
+
+- `.github/workflows/deploy-self-hosted.yml`
+- Input `image_tag` as `latest`, `sha-...`, or a release tag.
 
 ## 4. Verify
 
