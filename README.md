@@ -94,7 +94,9 @@ This repository implements a production-oriented autonomous breaking-news system
 - Runtime state is snapshotted to disk by default.
 - Configure with:
    - `ENABLE_STATE_SNAPSHOT`
+   - `STATE_BACKEND` (`json` or `sqlite`)
    - `STATE_SNAPSHOT_PATH`
+   - `STATE_SQLITE_PATH`
    - `RETENTION_ENABLED`
    - `RETENTION_MAX_EVENTS`
    - `RETENTION_MAX_PUBLICATIONS`

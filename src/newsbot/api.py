@@ -11,13 +11,14 @@ from newsbot.heartbeat import HeartbeatRunner
 from newsbot.main import build_default_orchestrator
 from newsbot.retraction_monitor import RetractionMonitor
 from newsbot.runtime import AutopilotRunner
+from newsbot.state.persistence import default_state_path
 from newsbot.telemetry import render_metrics
 
 orchestrator = build_default_orchestrator()
 runner = AutopilotRunner(
     orchestrator=orchestrator,
     poll_interval_seconds=settings.poll_interval_seconds,
-    snapshot_path=settings.state_snapshot_path if settings.enable_state_snapshot else None,
+    snapshot_path=default_state_path() if settings.enable_state_snapshot else None,
 )
 retraction_monitor = RetractionMonitor(
     orchestrator=orchestrator,
@@ -242,6 +243,9 @@ async def budget(_auth: None = Depends(require_admin_auth)) -> dict:
 async def retention(_auth: None = Depends(require_admin_auth)) -> dict:
     return {
         "enabled": settings.retention_enabled,
+        "state_backend": settings.state_backend,
+        "state_snapshot_path": settings.state_snapshot_path,
+        "state_sqlite_path": settings.state_sqlite_path,
         "max_events": settings.retention_max_events,
         "max_publications": settings.retention_max_publications,
         "max_failed_publications": settings.retention_max_failed_publications,

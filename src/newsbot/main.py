@@ -6,14 +6,14 @@ from newsbot.config import settings
 from newsbot.orchestrator import Orchestrator
 from newsbot.publish.fanout import Fanout
 from newsbot.source_registry import build_ingestor_fleet
-from newsbot.state.snapshot import load_snapshot
+from newsbot.state.persistence import load_state
 from newsbot.state.store import StateStore
 
 
 def build_default_orchestrator() -> Orchestrator:
     store = None
     if settings.enable_state_snapshot:
-        store = load_snapshot(settings.state_snapshot_path)
+        store = load_state()
     if store is None:
         store = StateStore(
             x_monthly_budget=settings.x_monthly_budget,

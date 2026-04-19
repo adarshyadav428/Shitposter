@@ -44,8 +44,12 @@ class Settings(BaseSettings):
     poll_interval_seconds: int = Field(default=30, alias="POLL_INTERVAL_SECONDS")
     autopilot_enabled: bool = Field(default=True, alias="AUTOPILOT_ENABLED")
     enable_state_snapshot: bool = Field(default=True, alias="ENABLE_STATE_SNAPSHOT")
+    state_backend: str = Field(default="json", alias="STATE_BACKEND")
     state_snapshot_path: str = Field(
         default=".state/newsbot_state.json", alias="STATE_SNAPSHOT_PATH"
+    )
+    state_sqlite_path: str = Field(
+        default=".state/newsbot_state.sqlite", alias="STATE_SQLITE_PATH"
     )
     retraction_monitor_enabled: bool = Field(default=True, alias="RETRACTION_MONITOR_ENABLED")
     retraction_monitor_interval_seconds: int = Field(
