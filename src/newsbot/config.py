@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
+from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -44,7 +45,7 @@ class Settings(BaseSettings):
     poll_interval_seconds: int = Field(default=30, alias="POLL_INTERVAL_SECONDS")
     autopilot_enabled: bool = Field(default=True, alias="AUTOPILOT_ENABLED")
     enable_state_snapshot: bool = Field(default=True, alias="ENABLE_STATE_SNAPSHOT")
-    state_backend: str = Field(default="json", alias="STATE_BACKEND")
+    state_backend: Literal["json", "sqlite"] = Field(default="json", alias="STATE_BACKEND")
     state_snapshot_path: str = Field(
         default=".state/newsbot_state.json", alias="STATE_SNAPSHOT_PATH"
     )
@@ -69,6 +70,11 @@ class Settings(BaseSettings):
     retention_max_drop_samples: int = Field(default=10000, alias="RETENTION_MAX_DROP_SAMPLES")
 
     global_pause: bool = Field(default=False, alias="GLOBAL_PAUSE")
+
+    @field_validator("state_backend", mode="before")
+    @classmethod
+    def normalize_state_backend(cls, value: str) -> str:
+        return value.lower() if isinstance(value, str) else value
 
 
 settings = Settings()
