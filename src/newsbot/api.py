@@ -115,6 +115,11 @@ async def sources() -> dict[str, float]:
     return {k: float(v) for k, v in model.items()}
 
 
+@app.get("/admin/ingestors")
+async def ingestors() -> dict[str, dict[str, int | str | None]]:
+    return orchestrator.get_ingestor_stats()
+
+
 @app.get("/admin/circuit")
 async def circuit() -> dict:
     return orchestrator.circuit_breaker.status()

@@ -45,6 +45,7 @@ This repository implements a production-oriented autonomous breaking-news system
 - `POST /admin/resume`
 - `POST /admin/retract/{event_id}`
 - `GET /admin/sources`
+- `GET /admin/ingestors`
 - `GET /admin/circuit`
 - `GET /admin/budget`
 - `GET /admin/autopilot`

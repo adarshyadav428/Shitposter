@@ -36,12 +36,35 @@ class Orchestrator:
         self.verify = verify or VerifyEngine()
         self.circuit_breaker = circuit_breaker or CircuitBreaker(store)
         self.reputation_model = reputation_model or ReputationModel()
+        self.ingestor_stats: dict[str, dict[str, int | str | None]] = {
+            ingestor.spec.source_id: {
+                "ok_polls": 0,
+                "failed_polls": 0,
+                "last_error": None,
+                "last_event_count": 0,
+            }
+            for ingestor in ingestors
+        }
 
     async def run_once(self) -> dict[str, int]:
         raw_events: list[RawEvent] = []
         for ingestor in self.ingestors:
-            fetched = await ingestor.poll()
-            raw_events.extend(fetched)
+            source_id = ingestor.spec.source_id
+            try:
+                fetched = await ingestor.poll()
+                items = list(fetched)
+                raw_events.extend(items)
+                self.ingestor_stats[source_id]["ok_polls"] = int(
+                    self.ingestor_stats[source_id]["ok_polls"]
+                ) + 1
+                self.ingestor_stats[source_id]["last_event_count"] = len(items)
+                self.ingestor_stats[source_id]["last_error"] = None
+            except Exception as exc:
+                self.ingestor_stats[source_id]["failed_polls"] = int(
+                    self.ingestor_stats[source_id]["failed_polls"]
+                ) + 1
+                self.ingestor_stats[source_id]["last_error"] = f"{type(exc).__name__}: {exc}"
+                self.ingestor_stats[source_id]["last_event_count"] = 0
 
         accepted = 0
         published = 0
@@ -92,6 +115,9 @@ class Orchestrator:
             "published": published,
             "dropped": dropped,
         }
+
+    def get_ingestor_stats(self) -> dict[str, dict[str, int | str | None]]:
+        return self.ingestor_stats
 
     async def retract(self, event_id: str, reason: str) -> bool:
         event = self.store.get_event(event_id)
