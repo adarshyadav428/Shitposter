@@ -27,14 +27,14 @@ jobs:
           POSTGRES_USER: shitposter
           POSTGRES_PASSWORD: shitposter
         ports: ["5432:5432"]
-        options: >
+        options: >-
           --health-cmd pg_isready
           --health-interval 10s
           --health-retries 5
       redis:
         image: redis:7-alpine
         ports: ["6379:6379"]
-        options: >
+        options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s
           --health-retries 5
