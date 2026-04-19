@@ -1,4 +1,4 @@
-.PHONY: install dev lint test run docker-build docker-up docker-down docker-up-prod
+.PHONY: install dev lint test run docker-build docker-up docker-down docker-up-prod smoke
 
 install:
 	pip install -e .[dev]
@@ -26,3 +26,7 @@ docker-down:
 
 docker-up-prod:
 	docker compose -f docker-compose.prod.yml up -d
+
+smoke:
+	curl -fsS http://127.0.0.1:8000/health/live
+	curl -fsS http://127.0.0.1:8000/health/ready

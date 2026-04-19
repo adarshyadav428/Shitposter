@@ -46,6 +46,20 @@ Then run workflow:
 
 - `.github/workflows/deploy-self-hosted.yml`
 - Input `image_tag` as `latest`, `sha-...`, or a release tag.
+- Workflow behavior:
+  - deploy candidate image
+  - wait for `/health/ready` success
+  - persist candidate as `.last_successful_image` when healthy
+  - auto-rollback to previous `.last_successful_image` when readiness fails
+
+First-time bootstrap note:
+
+- On a brand-new host, if no `.last_successful_image` exists yet, deploy once manually and
+  confirm readiness, then write the image to `.last_successful_image`:
+
+```bash
+echo "ghcr.io/<owner>/autonomous-news-broadcaster:<tag-or-latest>" > .last_successful_image
+```
 
 ## 4. Verify
 
@@ -68,6 +82,9 @@ export NEWSBOT_IMAGE=ghcr.io/<owner>/autonomous-news-broadcaster:<previous-tag>
 docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d
 ```
+
+The workflow also performs this rollback automatically when candidate readiness fails and a
+known-good image exists.
 
 ## 6. Data durability
 
