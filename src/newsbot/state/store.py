@@ -94,6 +94,40 @@ class StateStore:
             window.popleft()
         return len(window)
 
+    def prune(
+        self,
+        max_events: int,
+        max_publications: int,
+        max_failed_publications: int,
+    ) -> dict[str, int]:
+        removed_events = 0
+        if max_events >= 0 and len(self.events) > max_events:
+            ordered = sorted(self.events.values(), key=lambda e: e.updated_at, reverse=True)
+            keep_ids = {event.event_id for event in ordered[:max_events]}
+            for event_id in list(self.events.keys()):
+                if event_id not in keep_ids:
+                    del self.events[event_id]
+                    removed_events += 1
+
+            self.published_event_ids.intersection_update(self.events.keys())
+            self.retracted_event_ids.intersection_update(self.events.keys())
+
+        removed_publications = 0
+        if max_publications >= 0 and len(self.publications) > max_publications:
+            removed_publications = len(self.publications) - max_publications
+            self.publications = self.publications[-max_publications:]
+
+        removed_failed_publications = 0
+        if max_failed_publications >= 0 and len(self.failed_publications) > max_failed_publications:
+            removed_failed_publications = len(self.failed_publications) - max_failed_publications
+            self.failed_publications = self.failed_publications[-max_failed_publications:]
+
+        return {
+            "removed_events": removed_events,
+            "removed_publications": removed_publications,
+            "removed_failed_publications": removed_failed_publications,
+        }
+
     def to_dict(self) -> dict:
         return {
             "events": [self._event_to_dict(event) for event in self.events.values()],

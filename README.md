@@ -54,6 +54,8 @@ This repository implements a production-oriented autonomous breaking-news system
 - `GET /admin/ingestors`
 - `GET /admin/circuit`
 - `GET /admin/budget`
+- `GET /admin/retention`
+- `POST /admin/prune`
 - `GET /admin/autopilot`
 - `POST /admin/autopilot/start`
 - `POST /admin/autopilot/stop`
@@ -81,6 +83,7 @@ This repository implements a production-oriented autonomous breaking-news system
 - Telegram, Bluesky, and Mastodon publishers are implemented.
 - If credentials are missing, channels fall back to safe no-op publishing.
 - Configure with:
+   - `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET`
    - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
    - `BLUESKY_IDENTIFIER`, `BLUESKY_APP_PASSWORD`
    - `MASTODON_BASE_URL`, `MASTODON_ACCESS_TOKEN`
@@ -91,6 +94,10 @@ This repository implements a production-oriented autonomous breaking-news system
 - Configure with:
    - `ENABLE_STATE_SNAPSHOT`
    - `STATE_SNAPSHOT_PATH`
+   - `RETENTION_ENABLED`
+   - `RETENTION_MAX_EVENTS`
+   - `RETENTION_MAX_PUBLICATIONS`
+   - `RETENTION_MAX_FAILED_PUBLICATIONS`
 
 ## Retraction Monitoring
 

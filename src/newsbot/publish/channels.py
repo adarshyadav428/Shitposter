@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import httpx
+import tweepy
 
 from newsbot.config import settings
 from newsbot.publish.base import NoopPublisher, Publisher
@@ -123,6 +125,32 @@ class BlueskyPublisher(Publisher):
         return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+class XPublisher(Publisher):
+    name = "x"
+
+    def __init__(
+        self,
+        api_key: str,
+        api_secret: str,
+        access_token: str,
+        access_token_secret: str,
+    ) -> None:
+        self.client = tweepy.Client(
+            consumer_key=api_key,
+            consumer_secret=api_secret,
+            access_token=access_token,
+            access_token_secret=access_token_secret,
+            wait_on_rate_limit=False,
+        )
+
+    async def publish(self, text: str) -> str:
+        response = await asyncio.to_thread(self.client.create_tweet, text=text)
+        tweet_id = None
+        if response and getattr(response, "data", None):
+            tweet_id = response.data.get("id")
+        return f"x:{tweet_id or 'unknown'}"
+
+
 def build_publishers() -> list[Publisher]:
     publishers: list[Publisher] = []
 
@@ -147,3 +175,24 @@ def build_publishers() -> list[Publisher]:
 
     publishers.append(NoopPublisher("site"))
     return publishers
+
+
+def build_x_publisher() -> Publisher:
+    if not settings.x_enabled:
+        return NoopPublisher("x")
+
+    creds = (
+        settings.x_api_key,
+        settings.x_api_secret,
+        settings.x_access_token,
+        settings.x_access_token_secret,
+    )
+    if not all(creds):
+        return NoopPublisher("x")
+
+    return XPublisher(
+        api_key=settings.x_api_key or "",
+        api_secret=settings.x_api_secret or "",
+        access_token=settings.x_access_token or "",
+        access_token_secret=settings.x_access_token_secret or "",
+    )

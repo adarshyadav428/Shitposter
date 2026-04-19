@@ -25,3 +25,15 @@ def test_admin_heartbeat_endpoint() -> None:
     response = client.get("/admin/heartbeat")
     assert response.status_code == 200
     assert isinstance(response.json(), dict)
+
+
+def test_admin_retention_and_prune_endpoints() -> None:
+    client = TestClient(app)
+
+    retention = client.get("/admin/retention")
+    assert retention.status_code == 200
+    assert isinstance(retention.json(), dict)
+
+    prune = client.post("/admin/prune")
+    assert prune.status_code == 200
+    assert isinstance(prune.json(), dict)

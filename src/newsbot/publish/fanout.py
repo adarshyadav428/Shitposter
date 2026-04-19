@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from newsbot.config import settings
-from newsbot.publish.base import NoopPublisher, Publisher
-from newsbot.publish.channels import build_publishers
+from newsbot.publish.base import Publisher
+from newsbot.publish.channels import build_publishers, build_x_publisher
 from newsbot.publish.x_policy import can_publish_x, can_publish_x_correction
 from newsbot.state.store import FailedPublicationRecord, PublicationRecord, StateStore
 from newsbot.telemetry import observe_publish_failure
@@ -14,7 +14,7 @@ class Fanout:
     def __init__(self, store: StateStore, publishers: list[Publisher] | None = None) -> None:
         self.store = store
         self.publishers = publishers or build_publishers()
-        self.x_publisher = NoopPublisher("x")
+        self.x_publisher = build_x_publisher()
 
     async def publish(self, event_id: str, text: str) -> dict[str, str]:
         out: dict[str, str] = {}

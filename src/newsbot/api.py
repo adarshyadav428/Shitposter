@@ -229,6 +229,30 @@ async def budget(_auth: None = Depends(require_admin_auth)) -> dict:
     }
 
 
+@app.get("/admin/retention")
+async def retention(_auth: None = Depends(require_admin_auth)) -> dict:
+    return {
+        "enabled": settings.retention_enabled,
+        "max_events": settings.retention_max_events,
+        "max_publications": settings.retention_max_publications,
+        "max_failed_publications": settings.retention_max_failed_publications,
+        "current": {
+            "events": len(orchestrator.store.events),
+            "publications": len(orchestrator.store.publications),
+            "failed_publications": len(orchestrator.store.failed_publications),
+        },
+    }
+
+
+@app.post("/admin/prune")
+async def prune(_auth: None = Depends(require_admin_auth)) -> dict[str, int]:
+    return orchestrator.store.prune(
+        max_events=settings.retention_max_events,
+        max_publications=settings.retention_max_publications,
+        max_failed_publications=settings.retention_max_failed_publications,
+    )
+
+
 @app.post("/admin/pause")
 async def pause(_auth: None = Depends(require_admin_auth)) -> dict[str, bool]:
     orchestrator.store.global_pause = True

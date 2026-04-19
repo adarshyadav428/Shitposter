@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 from datetime import datetime, timezone
 
+from newsbot.config import settings
 from newsbot.orchestrator import Orchestrator
 from newsbot.state.snapshot import save_snapshot
 from newsbot.telemetry import set_autopilot_running
@@ -48,6 +49,12 @@ class AutopilotRunner:
 
     async def run_once_now(self) -> dict[str, int]:
         stats = await self.orchestrator.run_once()
+        if settings.retention_enabled:
+            self.orchestrator.store.prune(
+                max_events=settings.retention_max_events,
+                max_publications=settings.retention_max_publications,
+                max_failed_publications=settings.retention_max_failed_publications,
+            )
         self._last_stats = stats
         self._last_error = None
         self._last_run_at = datetime.now(timezone.utc)

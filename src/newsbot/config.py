@@ -24,6 +24,10 @@ class Settings(BaseSettings):
         default_factory=lambda: datetime(2026, 1, 1, tzinfo=timezone.utc),
         alias="X_ACCOUNT_CREATED_AT",
     )
+    x_api_key: str | None = Field(default=None, alias="X_API_KEY")
+    x_api_secret: str | None = Field(default=None, alias="X_API_SECRET")
+    x_access_token: str | None = Field(default=None, alias="X_ACCESS_TOKEN")
+    x_access_token_secret: str | None = Field(default=None, alias="X_ACCESS_TOKEN_SECRET")
 
     telegram_enabled: bool = Field(default=False, alias="TELEGRAM_ENABLED")
     bluesky_enabled: bool = Field(default=False, alias="BLUESKY_ENABLED")
@@ -50,6 +54,14 @@ class Settings(BaseSettings):
     heartbeat_enabled: bool = Field(default=False, alias="HEARTBEAT_ENABLED")
     heartbeat_interval_seconds: int = Field(default=300, alias="HEARTBEAT_INTERVAL_SECONDS")
     admin_api_token: str | None = Field(default=None, alias="ADMIN_API_TOKEN")
+    retention_enabled: bool = Field(default=True, alias="RETENTION_ENABLED")
+    retention_max_events: int = Field(default=5000, alias="RETENTION_MAX_EVENTS")
+    retention_max_publications: int = Field(
+        default=10000, alias="RETENTION_MAX_PUBLICATIONS"
+    )
+    retention_max_failed_publications: int = Field(
+        default=5000, alias="RETENTION_MAX_FAILED_PUBLICATIONS"
+    )
 
     global_pause: bool = Field(default=False, alias="GLOBAL_PAUSE")
 
