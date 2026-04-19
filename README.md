@@ -40,11 +40,14 @@ This repository implements a production-oriented autonomous breaking-news system
 
 - `GET /health`
 - `GET /metrics`
+- `POST /run-once`
 - `GET /stats`
 - `GET /events`
 - `GET /events/{event_id}`
 - `GET /events.json`
 - `GET /rss.xml`
+- `GET /dashboard`
+- `GET /system/readiness`
 - `GET /admin/publications`
 - `GET /admin/publication-failures`
 - `GET /admin/drops`

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Response
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from newsbot.config import settings
+from newsbot.dashboard import render_dashboard_html
 from newsbot.feed import render_events_json, render_rss_xml
 from newsbot.heartbeat import HeartbeatRunner
 from newsbot.main import build_default_orchestrator
@@ -44,6 +47,143 @@ async def _lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="Autonomous News Broadcaster", version="0.1.0", lifespan=_lifespan)
+
+
+def _channel_statuses() -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+
+    rows.append(
+        {
+            "name": "site",
+            "enabled": True,
+            "mode": "internal",
+            "operational": True,
+        }
+    )
+
+    telegram_configured = bool(settings.telegram_bot_token and settings.telegram_chat_id)
+    rows.append(
+        {
+            "name": "telegram",
+            "enabled": settings.telegram_enabled,
+            "mode": "live" if settings.telegram_enabled and telegram_configured else "noop",
+            "operational": bool((not settings.telegram_enabled) or telegram_configured),
+        }
+    )
+
+    bluesky_configured = bool(settings.bluesky_identifier and settings.bluesky_app_password)
+    rows.append(
+        {
+            "name": "bluesky",
+            "enabled": settings.bluesky_enabled,
+            "mode": "live" if settings.bluesky_enabled and bluesky_configured else "noop",
+            "operational": bool((not settings.bluesky_enabled) or bluesky_configured),
+        }
+    )
+
+    mastodon_configured = bool(settings.mastodon_base_url and settings.mastodon_access_token)
+    rows.append(
+        {
+            "name": "mastodon",
+            "enabled": settings.mastodon_enabled,
+            "mode": "live" if settings.mastodon_enabled and mastodon_configured else "noop",
+            "operational": bool((not settings.mastodon_enabled) or mastodon_configured),
+        }
+    )
+
+    x_configured = bool(
+        settings.x_api_key
+        and settings.x_api_secret
+        and settings.x_access_token
+        and settings.x_access_token_secret
+    )
+    rows.append(
+        {
+            "name": "x",
+            "enabled": settings.x_enabled,
+            "mode": "live" if settings.x_enabled and x_configured else "noop",
+            "operational": bool((not settings.x_enabled) or x_configured),
+        }
+    )
+    return rows
+
+
+def _persistence_status() -> dict[str, Any]:
+    path = default_state_path()
+    parent = Path(path).parent
+    return {
+        "backend": settings.state_backend,
+        "path": path,
+        "snapshot_enabled": settings.enable_state_snapshot,
+        "directory_exists": parent.exists(),
+    }
+
+
+def _ingest_status() -> dict[str, Any]:
+    return {
+        "enable_real_rss": settings.enable_real_rss,
+        "use_mock_ingestors": settings.use_mock_ingestors,
+        "ingestor_count": len(orchestrator.ingestors),
+        "last_poll": orchestrator.get_ingestor_stats(),
+    }
+
+
+def _readiness_summary(issues: list[str]) -> str:
+    if not issues:
+        return "all core systems are operational"
+    if len(issues) == 1:
+        return issues[0]
+    return f"{len(issues)} issues detected"
+
+
+@app.get("/")
+async def index() -> RedirectResponse:
+    return RedirectResponse(url="/dashboard", status_code=307)
+
+
+@app.get("/dashboard")
+async def dashboard() -> HTMLResponse:
+    return HTMLResponse(content=render_dashboard_html())
+
+
+@app.get("/system/readiness")
+async def system_readiness() -> dict:
+    channels = _channel_statuses()
+    persistence = _persistence_status()
+    ingest = _ingest_status()
+    runner_status = runner.status()
+    retraction_status = retraction_monitor.status()
+    heartbeat_status_data = heartbeat_runner.status()
+
+    issues: list[str] = []
+    if not settings.autopilot_enabled:
+        issues.append("autopilot disabled in config")
+    if not runner_status.get("running") and settings.autopilot_enabled:
+        issues.append("autopilot process not running")
+    if ingest["ingestor_count"] == 0:
+        issues.append("no ingestors configured")
+    if settings.enable_state_snapshot and not persistence["directory_exists"]:
+        issues.append("state directory does not exist yet")
+    if not all(item["operational"] for item in channels):
+        issues.append("one or more enabled channels missing credentials")
+    if settings.retraction_monitor_enabled and not retraction_status.get("running"):
+        issues.append("retraction monitor process not running")
+    if settings.heartbeat_enabled and not heartbeat_status_data.get("running"):
+        issues.append("heartbeat process not running")
+
+    return {
+        "ready": len(issues) == 0,
+        "summary": _readiness_summary(issues),
+        "issues": issues,
+        "channels": channels,
+        "persistence": persistence,
+        "ingest": ingest,
+        "runners": {
+            "autopilot": runner_status,
+            "retraction_monitor": retraction_status,
+            "heartbeat": heartbeat_status_data,
+        },
+    }
 
 
 def require_admin_auth(
