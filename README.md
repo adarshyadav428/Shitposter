@@ -57,6 +57,7 @@ This repository implements a production-oriented autonomous breaking-news system
 - `GET /admin/budget`
 - `GET /admin/retention`
 - `POST /admin/prune`
+- `POST /admin/state/save`
 - `GET /admin/autopilot`
 - `POST /admin/autopilot/start`
 - `POST /admin/autopilot/stop`

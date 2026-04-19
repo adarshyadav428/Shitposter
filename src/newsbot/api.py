@@ -11,7 +11,7 @@ from newsbot.heartbeat import HeartbeatRunner
 from newsbot.main import build_default_orchestrator
 from newsbot.retraction_monitor import RetractionMonitor
 from newsbot.runtime import AutopilotRunner
-from newsbot.state.persistence import default_state_path
+from newsbot.state.persistence import default_state_path, save_state
 from newsbot.telemetry import render_metrics
 
 orchestrator = build_default_orchestrator()
@@ -267,6 +267,23 @@ async def prune(_auth: None = Depends(require_admin_auth)) -> dict[str, int]:
         max_failed_publications=settings.retention_max_failed_publications,
         max_drop_samples=settings.retention_max_drop_samples,
     )
+
+
+@app.post("/admin/state/save")
+async def save_state_snapshot(_auth: None = Depends(require_admin_auth)) -> dict:
+    path = default_state_path()
+    save_state(orchestrator.store, path_override=path)
+    return {
+        "saved": True,
+        "backend": settings.state_backend,
+        "path": path,
+        "counts": {
+            "events": len(orchestrator.store.events),
+            "publications": len(orchestrator.store.publications),
+            "failed_publications": len(orchestrator.store.failed_publications),
+            "drop_samples": len(orchestrator.store.drop_samples),
+        },
+    }
 
 
 @app.post("/admin/pause")

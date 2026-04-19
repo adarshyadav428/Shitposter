@@ -47,3 +47,13 @@ def test_admin_retention_and_prune_endpoints() -> None:
     prune = client.post("/admin/prune")
     assert prune.status_code == 200
     assert isinstance(prune.json(), dict)
+
+
+def test_admin_state_save_endpoint() -> None:
+    client = TestClient(app)
+    response = client.post("/admin/state/save")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["saved"] is True
+    assert "backend" in payload
+    assert "path" in payload
