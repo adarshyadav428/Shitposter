@@ -30,13 +30,15 @@ def hamming_distance(a: int, b: int) -> int:
 class DedupeIndex:
     def __init__(self, max_distance: int = 6) -> None:
         self.max_distance = max_distance
-        self.fingerprints: dict[str, int] = {}
+        self.fingerprints: list[tuple[int, str]] = []
 
     def seen_duplicate(self, event: RawEvent) -> bool:
         key = f"{event.headline} {event.body}".strip()
         fp = simhash(key)
-        for old in self.fingerprints.values():
-            if hamming_distance(fp, old) <= self.max_distance:
+        for old_fp, family in self.fingerprints:
+            if family != event.witness.source_family:
+                continue
+            if hamming_distance(fp, old_fp) <= self.max_distance:
                 return True
-        self.fingerprints[event.event_id] = fp
+        self.fingerprints.append((fp, event.witness.source_family))
         return False

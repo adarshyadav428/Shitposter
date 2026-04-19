@@ -4,7 +4,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
-from newsbot.domain import CanonicalEvent, Sector
+from newsbot.domain import CanonicalEvent, Sector, SourceTier, Witness
 
 
 @dataclass(slots=True)
@@ -63,3 +63,117 @@ class StateStore:
         while window and window[0] < cutoff:
             window.popleft()
         return len(window)
+
+    def to_dict(self) -> dict:
+        return {
+            "events": [self._event_to_dict(event) for event in self.events.values()],
+            "publications": [
+                {
+                    "event_id": row.event_id,
+                    "channel": row.channel,
+                    "created_at": row.created_at.isoformat(),
+                    "payload": row.payload,
+                }
+                for row in self.publications
+            ],
+            "global_pause": self.global_pause,
+            "sector_paused": {k.value: v for k, v in self.sector_paused.items()},
+            "source_reputation": self.source_reputation,
+            "retraction_windows": {
+                sector.value: [item.isoformat() for item in values]
+                for sector, values in self.retraction_windows.items()
+            },
+            "x_monthly_budget": self.x_monthly_budget,
+            "x_correction_budget": self.x_correction_budget,
+            "x_used": self.x_used,
+            "x_correction_used": self.x_correction_used,
+            "x_last_post_at": self.x_last_post_at.isoformat() if self.x_last_post_at else None,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict) -> "StateStore":
+        store = cls(
+            x_monthly_budget=int(payload.get("x_monthly_budget", 40)),
+            x_correction_budget=int(payload.get("x_correction_budget", 10)),
+        )
+        store.global_pause = bool(payload.get("global_pause", False))
+
+        for sector_name, value in payload.get("sector_paused", {}).items():
+            store.sector_paused[Sector(sector_name)] = bool(value)
+
+        store.source_reputation = {
+            str(k): float(v) for k, v in payload.get("source_reputation", {}).items()
+        }
+
+        for sector_name, values in payload.get("retraction_windows", {}).items():
+            sector = Sector(sector_name)
+            parsed = deque(datetime.fromisoformat(item) for item in values)
+            store.retraction_windows[sector] = parsed
+
+        for row in payload.get("publications", []):
+            store.publications.append(
+                PublicationRecord(
+                    event_id=row["event_id"],
+                    channel=row["channel"],
+                    created_at=datetime.fromisoformat(row["created_at"]),
+                    payload=row["payload"],
+                )
+            )
+
+        for event in payload.get("events", []):
+            built = cls._event_from_dict(event)
+            store.events[built.event_id] = built
+
+        store.x_used = int(payload.get("x_used", 0))
+        store.x_correction_used = int(payload.get("x_correction_used", 0))
+        x_last_post_at = payload.get("x_last_post_at")
+        store.x_last_post_at = datetime.fromisoformat(x_last_post_at) if x_last_post_at else None
+        return store
+
+    @staticmethod
+    def _event_to_dict(event: CanonicalEvent) -> dict:
+        return {
+            "event_id": event.event_id,
+            "sector": event.sector.value,
+            "headline": event.headline,
+            "body": event.body,
+            "first_seen_at": event.first_seen_at.isoformat(),
+            "updated_at": event.updated_at.isoformat(),
+            "entities": sorted(event.entities),
+            "witnesses": [
+                {
+                    "source_id": witness.source_id,
+                    "source_family": witness.source_family,
+                    "source_tier": int(witness.source_tier),
+                    "reputation": witness.reputation,
+                    "seen_at": witness.seen_at.isoformat(),
+                    "url": witness.url,
+                    "text": witness.text,
+                }
+                for witness in event.witnesses
+            ],
+        }
+
+    @staticmethod
+    def _event_from_dict(payload: dict) -> CanonicalEvent:
+        return CanonicalEvent(
+            event_id=payload["event_id"],
+            sector=Sector(payload["sector"]),
+            headline=payload["headline"],
+            body=payload["body"],
+            first_seen_at=datetime.fromisoformat(payload["first_seen_at"]),
+            updated_at=datetime.fromisoformat(payload["updated_at"]),
+            entities=set(payload.get("entities", [])),
+            witnesses=[
+                Witness(
+                    source_id=item["source_id"],
+                    source_family=item["source_family"],
+                    source_tier=SourceTier(item["source_tier"]),
+                    reputation=float(item["reputation"]),
+                    seen_at=datetime.fromisoformat(item["seen_at"]),
+                    url=item["url"],
+                    text=item["text"],
+                )
+                for item in payload.get("witnesses", [])
+            ],
+        )

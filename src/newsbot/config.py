@@ -29,6 +29,15 @@ class Settings(BaseSettings):
     bluesky_enabled: bool = Field(default=False, alias="BLUESKY_ENABLED")
     mastodon_enabled: bool = Field(default=False, alias="MASTODON_ENABLED")
 
+    use_mock_ingestors: bool = Field(default=True, alias="USE_MOCK_INGESTORS")
+    enable_real_rss: bool = Field(default=False, alias="ENABLE_REAL_RSS")
+    poll_interval_seconds: int = Field(default=30, alias="POLL_INTERVAL_SECONDS")
+    autopilot_enabled: bool = Field(default=True, alias="AUTOPILOT_ENABLED")
+    enable_state_snapshot: bool = Field(default=True, alias="ENABLE_STATE_SNAPSHOT")
+    state_snapshot_path: str = Field(
+        default=".state/newsbot_state.json", alias="STATE_SNAPSHOT_PATH"
+    )
+
     global_pause: bool = Field(default=False, alias="GLOBAL_PAUSE")
 
 

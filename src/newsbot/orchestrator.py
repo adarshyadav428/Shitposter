@@ -11,6 +11,7 @@ from newsbot.pipeline.cluster import ClusterEngine
 from newsbot.pipeline.dedupe import DedupeIndex
 from newsbot.pipeline.verify import VerifyEngine
 from newsbot.publish.fanout import Fanout
+from newsbot.state.reputation import ReputationModel
 from newsbot.state.store import StateStore
 from newsbot.survival.circuit_breaker import CircuitBreaker
 
@@ -25,6 +26,7 @@ class Orchestrator:
         cluster: ClusterEngine | None = None,
         verify: VerifyEngine | None = None,
         circuit_breaker: CircuitBreaker | None = None,
+        reputation_model: ReputationModel | None = None,
     ) -> None:
         self.ingestors = ingestors
         self.store = store
@@ -33,6 +35,7 @@ class Orchestrator:
         self.cluster = cluster or ClusterEngine()
         self.verify = verify or VerifyEngine()
         self.circuit_breaker = circuit_breaker or CircuitBreaker(store)
+        self.reputation_model = reputation_model or ReputationModel()
 
     async def run_once(self) -> dict[str, int]:
         raw_events: list[RawEvent] = []
@@ -49,6 +52,9 @@ class Orchestrator:
             by_sector[event.sector.value].append(event)
 
         for event in raw_events:
+            event.witness.reputation = self.reputation_model.score(event.witness.source_id)
+            self.store.source_reputation[event.witness.source_id] = event.witness.reputation
+
             if self.store.is_paused(event.sector):
                 dropped += 1
                 continue
@@ -75,6 +81,9 @@ class Orchestrator:
                 continue
 
             await self.fanout.publish(canonical.event_id, draft)
+            for witness in canonical.witnesses:
+                new_score = self.reputation_model.mark_success(witness.source_id)
+                self.store.source_reputation[witness.source_id] = new_score
             published += 1
 
         return {
@@ -88,6 +97,9 @@ class Orchestrator:
         event = self.store.get_event(event_id)
         if event is None:
             return False
+        for witness in event.witnesses:
+            new_score = self.reputation_model.mark_retraction(witness.source_id)
+            self.store.source_reputation[witness.source_id] = new_score
         triggered = self.circuit_breaker.record_retraction(event.sector)
         await self.fanout.publish_correction(event_id, reason)
         return triggered
