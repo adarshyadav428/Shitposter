@@ -95,6 +95,8 @@ class Orchestrator:
             verdict = self.verify.evaluate(canonical)
             if not verdict.publish:
                 continue
+            if self.store.is_published(canonical.event_id):
+                continue
 
             claims = extract_claims(canonical)
             draft = compose_post(claims)
@@ -103,7 +105,12 @@ class Orchestrator:
                 dropped += 1
                 continue
 
-            await self.fanout.publish(canonical.event_id, draft)
+            receipts = await self.fanout.publish(canonical.event_id, draft)
+            if not self._has_successful_channel(receipts):
+                dropped += 1
+                continue
+
+            self.store.mark_published(canonical.event_id)
             for witness in canonical.witnesses:
                 new_score = self.reputation_model.mark_success(witness.source_id)
                 self.store.source_reputation[witness.source_id] = new_score
@@ -118,6 +125,16 @@ class Orchestrator:
 
     def get_ingestor_stats(self) -> dict[str, dict[str, int | str | None]]:
         return self.ingestor_stats
+
+    @staticmethod
+    def _has_successful_channel(receipts: dict[str, str]) -> bool:
+        for value in receipts.values():
+            if value.startswith("error:"):
+                continue
+            if value.startswith("skipped:"):
+                continue
+            return True
+        return False
 
     async def retract(self, event_id: str, reason: str) -> bool:
         event = self.store.get_event(event_id)

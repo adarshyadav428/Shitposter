@@ -11,3 +11,10 @@ def test_admin_ingestors_endpoint() -> None:
     response = client.get("/admin/ingestors")
     assert response.status_code == 200
     assert isinstance(response.json(), dict)
+
+
+def test_admin_publication_failures_endpoint() -> None:
+    client = TestClient(app)
+    response = client.get("/admin/publication-failures")
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)

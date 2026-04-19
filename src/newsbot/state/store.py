@@ -15,10 +15,21 @@ class PublicationRecord:
     payload: str
 
 
+@dataclass(slots=True)
+class FailedPublicationRecord:
+    event_id: str
+    channel: str
+    created_at: datetime
+    payload: str
+    error: str
+
+
 class StateStore:
     def __init__(self, x_monthly_budget: int, x_correction_budget: int) -> None:
         self.events: dict[str, CanonicalEvent] = {}
         self.publications: list[PublicationRecord] = []
+        self.failed_publications: list[FailedPublicationRecord] = []
+        self.published_event_ids: set[str] = set()
         self.retracted_event_ids: set[str] = set()
         self.global_pause: bool = False
         self.sector_paused: dict[Sector, bool] = defaultdict(bool)
@@ -45,6 +56,18 @@ class StateStore:
 
     def list_publications(self, limit: int = 100) -> list[PublicationRecord]:
         return self.publications[-limit:]
+
+    def add_failed_publication(self, record: FailedPublicationRecord) -> None:
+        self.failed_publications.append(record)
+
+    def list_failed_publications(self, limit: int = 100) -> list[FailedPublicationRecord]:
+        return self.failed_publications[-limit:]
+
+    def mark_published(self, event_id: str) -> None:
+        self.published_event_ids.add(event_id)
+
+    def is_published(self, event_id: str) -> bool:
+        return event_id in self.published_event_ids
 
     def mark_retracted(self, event_id: str) -> None:
         self.retracted_event_ids.add(event_id)
@@ -83,6 +106,17 @@ class StateStore:
                 }
                 for row in self.publications
             ],
+            "failed_publications": [
+                {
+                    "event_id": row.event_id,
+                    "channel": row.channel,
+                    "created_at": row.created_at.isoformat(),
+                    "payload": row.payload,
+                    "error": row.error,
+                }
+                for row in self.failed_publications
+            ],
+            "published_event_ids": sorted(self.published_event_ids),
             "retracted_event_ids": sorted(self.retracted_event_ids),
             "global_pause": self.global_pause,
             "sector_paused": {k.value: v for k, v in self.sector_paused.items()},
@@ -128,6 +162,18 @@ class StateStore:
                 )
             )
 
+        for row in payload.get("failed_publications", []):
+            store.failed_publications.append(
+                FailedPublicationRecord(
+                    event_id=row["event_id"],
+                    channel=row["channel"],
+                    created_at=datetime.fromisoformat(row["created_at"]),
+                    payload=row["payload"],
+                    error=row["error"],
+                )
+            )
+
+        store.published_event_ids = set(payload.get("published_event_ids", []))
         store.retracted_event_ids = set(payload.get("retracted_event_ids", []))
 
         for event in payload.get("events", []):

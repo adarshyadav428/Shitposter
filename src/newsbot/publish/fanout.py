@@ -6,7 +6,7 @@ from newsbot.config import settings
 from newsbot.publish.base import NoopPublisher, Publisher
 from newsbot.publish.channels import build_publishers
 from newsbot.publish.x_policy import can_publish_x, can_publish_x_correction
-from newsbot.state.store import PublicationRecord, StateStore
+from newsbot.state.store import FailedPublicationRecord, PublicationRecord, StateStore
 
 
 class Fanout:
@@ -24,7 +24,11 @@ class Fanout:
                 out[publisher.name] = receipt
                 self.store.add_publication(PublicationRecord(event_id, publisher.name, now, text))
             except Exception as exc:
+                error = f"{type(exc).__name__}: {exc}"
                 out[publisher.name] = f"error:{type(exc).__name__}"
+                self.store.add_failed_publication(
+                    FailedPublicationRecord(event_id, publisher.name, now, text, error)
+                )
 
         can_x, reason = can_publish_x(self.store)
         if can_x:
@@ -35,7 +39,11 @@ class Fanout:
                 self.store.x_last_post_at = now
                 self.store.add_publication(PublicationRecord(event_id, "x", now, text))
             except Exception as exc:
+                error = f"{type(exc).__name__}: {exc}"
                 out["x"] = f"error:{type(exc).__name__}"
+                self.store.add_failed_publication(
+                    FailedPublicationRecord(event_id, "x", now, text, error)
+                )
         else:
             out["x"] = f"skipped:{reason}"
 
@@ -53,7 +61,11 @@ class Fanout:
                     PublicationRecord(event_id, publisher.name, now, correction_text)
                 )
             except Exception as exc:
+                error = f"{type(exc).__name__}: {exc}"
                 out[publisher.name] = f"error:{type(exc).__name__}"
+                self.store.add_failed_publication(
+                    FailedPublicationRecord(event_id, publisher.name, now, correction_text, error)
+                )
 
         can_x, reason = can_publish_x_correction(self.store)
         if can_x and settings.x_enabled:
@@ -63,7 +75,11 @@ class Fanout:
                 self.store.x_correction_used += 1
                 self.store.add_publication(PublicationRecord(event_id, "x", now, correction_text))
             except Exception as exc:
+                error = f"{type(exc).__name__}: {exc}"
                 out["x"] = f"error:{type(exc).__name__}"
+                self.store.add_failed_publication(
+                    FailedPublicationRecord(event_id, "x", now, correction_text, error)
+                )
         else:
             out["x"] = f"skipped:{reason}"
 

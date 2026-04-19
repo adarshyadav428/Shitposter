@@ -55,6 +55,8 @@ async def stats() -> dict:
         "autopilot": runner.status(),
         "events": len(store.events),
         "publications": len(store.publications),
+        "published_events": len(store.published_event_ids),
+        "failed_publications": len(store.failed_publications),
         "x_budget": {
             "used": store.x_used,
             "limit": store.x_monthly_budget,
@@ -104,6 +106,21 @@ async def publications(limit: int = 50) -> list[dict]:
             "channel": row.channel,
             "created_at": row.created_at.isoformat(),
             "payload": row.payload,
+        }
+        for row in rows
+    ]
+
+
+@app.get("/admin/publication-failures")
+async def publication_failures(limit: int = 50) -> list[dict]:
+    rows = orchestrator.store.list_failed_publications(limit=limit)
+    return [
+        {
+            "event_id": row.event_id,
+            "channel": row.channel,
+            "created_at": row.created_at.isoformat(),
+            "payload": row.payload,
+            "error": row.error,
         }
         for row in rows
     ]

@@ -23,3 +23,6 @@ async def test_fanout_isolates_channel_failures() -> None:
     assert result["site"].startswith("site:")
     channels = [row.channel for row in store.list_publications()]
     assert "site" in channels
+    failures = store.list_failed_publications()
+    assert len(failures) >= 1
+    assert failures[-1].channel == "failing"
