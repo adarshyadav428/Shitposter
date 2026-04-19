@@ -29,6 +29,8 @@ class StateStore:
         self.events: dict[str, CanonicalEvent] = {}
         self.publications: list[PublicationRecord] = []
         self.failed_publications: list[FailedPublicationRecord] = []
+        self.drop_reason_counts: dict[str, int] = defaultdict(int)
+        self.drop_samples: list[dict[str, str]] = []
         self.published_event_ids: set[str] = set()
         self.retracted_event_ids: set[str] = set()
         self.global_pause: bool = False
@@ -75,6 +77,30 @@ class StateStore:
     def is_retracted(self, event_id: str) -> bool:
         return event_id in self.retracted_event_ids
 
+    def record_drop(
+        self,
+        reason: str,
+        event_id: str,
+        sector: str,
+        source_id: str,
+    ) -> None:
+        self.drop_reason_counts[reason] += 1
+        self.drop_samples.append(
+            {
+                "reason": reason,
+                "event_id": event_id,
+                "sector": sector,
+                "source_id": source_id,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+
+    def get_drop_reason_counts(self) -> dict[str, int]:
+        return dict(self.drop_reason_counts)
+
+    def list_drop_samples(self, limit: int = 100) -> list[dict[str, str]]:
+        return self.drop_samples[-limit:]
+
     def is_paused(self, sector: Sector) -> bool:
         return self.global_pause or self.sector_paused.get(sector, False)
 
@@ -99,6 +125,7 @@ class StateStore:
         max_events: int,
         max_publications: int,
         max_failed_publications: int,
+        max_drop_samples: int = 10000,
     ) -> dict[str, int]:
         removed_events = 0
         if max_events >= 0 and len(self.events) > max_events:
@@ -122,10 +149,16 @@ class StateStore:
             removed_failed_publications = len(self.failed_publications) - max_failed_publications
             self.failed_publications = self.failed_publications[-max_failed_publications:]
 
+        removed_drop_samples = 0
+        if max_drop_samples >= 0 and len(self.drop_samples) > max_drop_samples:
+            removed_drop_samples = len(self.drop_samples) - max_drop_samples
+            self.drop_samples = self.drop_samples[-max_drop_samples:]
+
         return {
             "removed_events": removed_events,
             "removed_publications": removed_publications,
             "removed_failed_publications": removed_failed_publications,
+            "removed_drop_samples": removed_drop_samples,
         }
 
     def to_dict(self) -> dict:
@@ -150,6 +183,8 @@ class StateStore:
                 }
                 for row in self.failed_publications
             ],
+            "drop_reason_counts": dict(self.drop_reason_counts),
+            "drop_samples": self.drop_samples,
             "published_event_ids": sorted(self.published_event_ids),
             "retracted_event_ids": sorted(self.retracted_event_ids),
             "global_pause": self.global_pause,
@@ -206,6 +241,21 @@ class StateStore:
                     error=row["error"],
                 )
             )
+
+        store.drop_reason_counts = defaultdict(
+            int,
+            {k: int(v) for k, v in payload.get("drop_reason_counts", {}).items()},
+        )
+        store.drop_samples = [
+            {
+                "reason": str(item.get("reason", "unknown")),
+                "event_id": str(item.get("event_id", "")),
+                "sector": str(item.get("sector", "")),
+                "source_id": str(item.get("source_id", "")),
+                "created_at": str(item.get("created_at", "")),
+            }
+            for item in payload.get("drop_samples", [])
+        ]
 
         store.published_event_ids = set(payload.get("published_event_ids", []))
         store.retracted_event_ids = set(payload.get("retracted_event_ids", []))

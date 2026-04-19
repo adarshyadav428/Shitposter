@@ -54,6 +54,7 @@ class AutopilotRunner:
                 max_events=settings.retention_max_events,
                 max_publications=settings.retention_max_publications,
                 max_failed_publications=settings.retention_max_failed_publications,
+                max_drop_samples=settings.retention_max_drop_samples,
             )
         self._last_stats = stats
         self._last_error = None

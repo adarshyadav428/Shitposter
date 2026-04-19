@@ -87,6 +87,7 @@ async def stats() -> dict:
         "publications": len(store.publications),
         "published_events": len(store.published_event_ids),
         "failed_publications": len(store.failed_publications),
+        "drop_reasons": store.get_drop_reason_counts(),
         "x_budget": {
             "used": store.x_used,
             "limit": store.x_monthly_budget,
@@ -208,6 +209,14 @@ async def sources(_auth: None = Depends(require_admin_auth)) -> dict[str, float]
     return {k: float(v) for k, v in model.items()}
 
 
+@app.get("/admin/drops")
+async def drops(limit: int = 100, _auth: None = Depends(require_admin_auth)) -> dict:
+    return {
+        "counts": orchestrator.store.get_drop_reason_counts(),
+        "samples": orchestrator.store.list_drop_samples(limit=limit),
+    }
+
+
 @app.get("/admin/ingestors")
 async def ingestors(_auth: None = Depends(require_admin_auth)) -> dict[str, dict[str, Any]]:
     return orchestrator.get_ingestor_stats()
@@ -236,10 +245,12 @@ async def retention(_auth: None = Depends(require_admin_auth)) -> dict:
         "max_events": settings.retention_max_events,
         "max_publications": settings.retention_max_publications,
         "max_failed_publications": settings.retention_max_failed_publications,
+        "max_drop_samples": settings.retention_max_drop_samples,
         "current": {
             "events": len(orchestrator.store.events),
             "publications": len(orchestrator.store.publications),
             "failed_publications": len(orchestrator.store.failed_publications),
+            "drop_samples": len(orchestrator.store.drop_samples),
         },
     }
 
@@ -250,6 +261,7 @@ async def prune(_auth: None = Depends(require_admin_auth)) -> dict[str, int]:
         max_events=settings.retention_max_events,
         max_publications=settings.retention_max_publications,
         max_failed_publications=settings.retention_max_failed_publications,
+        max_drop_samples=settings.retention_max_drop_samples,
     )
 
 

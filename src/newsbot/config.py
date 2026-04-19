@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     retention_max_failed_publications: int = Field(
         default=5000, alias="RETENTION_MAX_FAILED_PUBLICATIONS"
     )
+    retention_max_drop_samples: int = Field(default=10000, alias="RETENTION_MAX_DROP_SAMPLES")
 
     global_pause: bool = Field(default=False, alias="GLOBAL_PAUSE")
 

@@ -14,7 +14,7 @@ from newsbot.publish.fanout import Fanout
 from newsbot.state.reputation import ReputationModel
 from newsbot.state.store import StateStore
 from newsbot.survival.circuit_breaker import CircuitBreaker
-from newsbot.telemetry import observe_retractions, observe_run
+from newsbot.telemetry import observe_drop_reason, observe_retractions, observe_run
 
 
 class Orchestrator:
@@ -81,9 +81,23 @@ class Orchestrator:
 
             if self.store.is_paused(event.sector):
                 dropped += 1
+                self.store.record_drop(
+                    "sector_paused",
+                    event.event_id,
+                    event.sector.value,
+                    event.witness.source_id,
+                )
+                observe_drop_reason("sector_paused")
                 continue
             if self.dedupe.seen_duplicate(event):
                 dropped += 1
+                self.store.record_drop(
+                    "dedupe_duplicate",
+                    event.event_id,
+                    event.sector.value,
+                    event.witness.source_id,
+                )
+                observe_drop_reason("dedupe_duplicate")
                 continue
 
             existing = by_sector[event.sector.value]
@@ -95,8 +109,23 @@ class Orchestrator:
 
             verdict = self.verify.evaluate(canonical)
             if not verdict.publish:
+                reason = f"verify_{verdict.reason}"
+                self.store.record_drop(
+                    reason,
+                    canonical.event_id,
+                    canonical.sector.value,
+                    canonical.witnesses[-1].source_id,
+                )
+                observe_drop_reason(reason)
                 continue
             if self.store.is_published(canonical.event_id):
+                self.store.record_drop(
+                    "already_published",
+                    canonical.event_id,
+                    canonical.sector.value,
+                    canonical.witnesses[-1].source_id,
+                )
+                observe_drop_reason("already_published")
                 continue
 
             claims = extract_claims(canonical)
@@ -104,11 +133,25 @@ class Orchestrator:
             ok, _reason = judge_draft(draft, claims)
             if not ok:
                 dropped += 1
+                self.store.record_drop(
+                    "judge_rejected",
+                    canonical.event_id,
+                    canonical.sector.value,
+                    canonical.witnesses[-1].source_id,
+                )
+                observe_drop_reason("judge_rejected")
                 continue
 
             receipts = await self.fanout.publish(canonical.event_id, draft)
             if not self._has_successful_channel(receipts):
                 dropped += 1
+                self.store.record_drop(
+                    "publish_no_successful_channel",
+                    canonical.event_id,
+                    canonical.sector.value,
+                    canonical.witnesses[-1].source_id,
+                )
+                observe_drop_reason("publish_no_successful_channel")
                 continue
 
             self.store.mark_published(canonical.event_id)

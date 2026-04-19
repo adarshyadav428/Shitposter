@@ -47,6 +47,7 @@ This repository implements a production-oriented autonomous breaking-news system
 - `GET /rss.xml`
 - `GET /admin/publications`
 - `GET /admin/publication-failures`
+- `GET /admin/drops`
 - `POST /admin/pause`
 - `POST /admin/resume`
 - `POST /admin/retract/{event_id}`
@@ -98,6 +99,7 @@ This repository implements a production-oriented autonomous breaking-news system
    - `RETENTION_MAX_EVENTS`
    - `RETENTION_MAX_PUBLICATIONS`
    - `RETENTION_MAX_FAILED_PUBLICATIONS`
+   - `RETENTION_MAX_DROP_SAMPLES`
 
 ## Retraction Monitoring
 

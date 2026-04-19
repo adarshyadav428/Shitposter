@@ -27,6 +27,16 @@ def test_admin_heartbeat_endpoint() -> None:
     assert isinstance(response.json(), dict)
 
 
+def test_admin_drops_endpoint() -> None:
+    client = TestClient(app)
+    response = client.get("/admin/drops")
+    assert response.status_code == 200
+    body = response.json()
+    assert isinstance(body, dict)
+    assert "counts" in body
+    assert "samples" in body
+
+
 def test_admin_retention_and_prune_endpoints() -> None:
     client = TestClient(app)
 

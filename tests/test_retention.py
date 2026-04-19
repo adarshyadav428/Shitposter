@@ -31,14 +31,22 @@ def test_store_prune_limits_collections_and_sets() -> None:
         store.add_failed_publication(
             FailedPublicationRecord("evt-5", "x", now, f"fail-{i}", "boom")
         )
+        store.record_drop("sample_reason", f"drop-{i}", "macroeconomics", "src")
 
-    result = store.prune(max_events=3, max_publications=4, max_failed_publications=2)
+    result = store.prune(
+        max_events=3,
+        max_publications=4,
+        max_failed_publications=2,
+        max_drop_samples=2,
+    )
 
     assert result["removed_events"] == 3
     assert result["removed_publications"] == 4
     assert result["removed_failed_publications"] == 6
+    assert result["removed_drop_samples"] == 6
     assert len(store.events) == 3
     assert len(store.publications) == 4
     assert len(store.failed_publications) == 2
+    assert len(store.drop_samples) == 2
     assert store.published_event_ids.issubset(store.events.keys())
     assert store.retracted_event_ids.issubset(store.events.keys())
