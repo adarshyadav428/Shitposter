@@ -12,6 +12,7 @@ from newsbot.dashboard import render_dashboard_html
 from newsbot.feed import render_events_json, render_rss_xml
 from newsbot.heartbeat import HeartbeatRunner
 from newsbot.main import build_default_orchestrator
+from newsbot.preflight import evaluate_preflight
 from newsbot.retraction_monitor import RetractionMonitor
 from newsbot.runtime import AutopilotRunner
 from newsbot.state.persistence import default_state_path, save_state
@@ -137,6 +138,7 @@ def _readiness_summary(issues: list[str]) -> str:
 
 
 def _build_system_readiness() -> dict:
+    preflight = evaluate_preflight(settings)
     channels = _channel_statuses()
     persistence = _persistence_status()
     ingest = _ingest_status()
@@ -144,7 +146,8 @@ def _build_system_readiness() -> dict:
     retraction_status = retraction_monitor.status()
     heartbeat_status_data = heartbeat_runner.status()
 
-    issues: list[str] = []
+    issues: list[str] = list(preflight["issues"])
+    warnings: list[str] = list(preflight["warnings"])
     if not settings.autopilot_enabled:
         issues.append("autopilot disabled in config")
     if not runner_status.get("running") and settings.autopilot_enabled:
@@ -164,6 +167,8 @@ def _build_system_readiness() -> dict:
         "ready": len(issues) == 0,
         "summary": _readiness_summary(issues),
         "issues": issues,
+        "warnings": warnings,
+        "environment": settings.app_env,
         "channels": channels,
         "persistence": persistence,
         "ingest": ingest,
@@ -200,6 +205,11 @@ async def health_ready(response: Response) -> dict:
 @app.get("/system/readiness")
 async def system_readiness() -> dict:
     return _build_system_readiness()
+
+
+@app.get("/system/preflight")
+async def system_preflight() -> dict:
+    return evaluate_preflight(settings)
 
 
 def require_admin_auth(

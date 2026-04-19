@@ -43,6 +43,7 @@ This repository implements a production-oriented autonomous breaking-news system
 - Release image workflow: `.github/workflows/release-image.yml`
 - Self-hosted deploy workflow: `.github/workflows/deploy-self-hosted.yml`
 - Production compose stack: `docker-compose.prod.yml`
+- Config preflight checker: `make predeploy`
 
 ## API
 
@@ -58,6 +59,7 @@ This repository implements a production-oriented autonomous breaking-news system
 - `GET /rss.xml`
 - `GET /dashboard`
 - `GET /system/readiness`
+- `GET /system/preflight`
 - `GET /admin/publications`
 - `GET /admin/publication-failures`
 - `GET /admin/drops`

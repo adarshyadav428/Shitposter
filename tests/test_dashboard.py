@@ -27,10 +27,24 @@ def test_system_readiness_shape() -> None:
     assert "ready" in payload
     assert "summary" in payload
     assert "issues" in payload
+    assert "warnings" in payload
+    assert "environment" in payload
     assert "channels" in payload
     assert "persistence" in payload
     assert "ingest" in payload
     assert "runners" in payload
+
+
+def test_system_preflight_shape() -> None:
+    client = TestClient(app)
+    response = client.get("/system/preflight")
+    assert response.status_code == 200
+    payload = response.json()
+    assert "environment" in payload
+    assert "production_mode" in payload
+    assert "issues" in payload
+    assert "warnings" in payload
+    assert "ok" in payload
 
 
 def test_liveness_probe() -> None:

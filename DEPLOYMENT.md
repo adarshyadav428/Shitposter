@@ -67,6 +67,7 @@ echo "ghcr.io/<owner>/autonomous-news-broadcaster:<tag-or-latest>" > .last_succe
 curl -sSf http://<host>:8000/health/live
 curl -sSf http://<host>:8000/health/ready
 curl -sSf http://<host>:8000/system/readiness
+curl -sSf http://<host>:8000/system/preflight
 ```
 
 Expected:
@@ -74,6 +75,13 @@ Expected:
 - `/health/live` always returns status `live` when process is up.
 - `/health/ready` returns HTTP 200 only when runtime readiness checks pass.
 - `/system/readiness` includes detailed issues and component status.
+- `/system/preflight` reports static config issues/warnings (safe to run pre-launch).
+
+Before launching on a host, run local static preflight:
+
+```bash
+make predeploy
+```
 
 ## 5. Rollback
 

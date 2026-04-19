@@ -1,4 +1,4 @@
-.PHONY: install dev lint test run docker-build docker-up docker-down docker-up-prod smoke
+.PHONY: install dev lint test run docker-build docker-up docker-down docker-up-prod smoke predeploy
 
 install:
 	pip install -e .[dev]
@@ -30,3 +30,6 @@ docker-up-prod:
 smoke:
 	curl -fsS http://127.0.0.1:8000/health/live
 	curl -fsS http://127.0.0.1:8000/health/ready
+
+predeploy:
+	python scripts/predeploy_check.py
