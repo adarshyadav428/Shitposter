@@ -61,6 +61,10 @@ This repository implements a production-oriented autonomous breaking-news system
 - `POST /admin/retraction-monitor/start`
 - `POST /admin/retraction-monitor/stop`
 - `POST /admin/retraction-monitor/scan`
+- `GET /admin/heartbeat`
+- `POST /admin/heartbeat/start`
+- `POST /admin/heartbeat/stop`
+- `POST /admin/heartbeat/send`
 
 ## Source Fleet
 
@@ -95,6 +99,13 @@ This repository implements a production-oriented autonomous breaking-news system
 - Configure with:
    - `RETRACTION_MONITOR_ENABLED`
    - `RETRACTION_MONITOR_INTERVAL_SECONDS`
+
+## Heartbeat
+
+- Optional background heartbeat sends periodic liveness messages.
+- Configure with:
+   - `HEARTBEAT_ENABLED`
+   - `HEARTBEAT_INTERVAL_SECONDS`
 
 ## Notes
 

@@ -15,6 +15,8 @@ AUTOPILOT_RUNNING = Gauge("newsbot_autopilot_running", "Autopilot runner state")
 RETRACTION_MONITOR_RUNNING = Gauge(
     "newsbot_retraction_monitor_running", "Retraction monitor state"
 )
+HEARTBEAT_RUNNING = Gauge("newsbot_heartbeat_running", "Heartbeat runner state")
+HEARTBEAT_FAILURES_TOTAL = Counter("newsbot_heartbeat_failures_total", "Total heartbeat failures")
 
 
 def observe_run(stats: dict[str, int]) -> None:
@@ -40,6 +42,14 @@ def set_autopilot_running(running: bool) -> None:
 
 def set_retraction_monitor_running(running: bool) -> None:
     RETRACTION_MONITOR_RUNNING.set(1 if running else 0)
+
+
+def set_heartbeat_running(running: bool) -> None:
+    HEARTBEAT_RUNNING.set(1 if running else 0)
+
+
+def observe_heartbeat_failure() -> None:
+    HEARTBEAT_FAILURES_TOTAL.inc(1)
 
 
 def render_metrics() -> tuple[bytes, str]:

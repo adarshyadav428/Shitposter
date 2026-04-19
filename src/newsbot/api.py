@@ -7,6 +7,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Response
 
 from newsbot.config import settings
 from newsbot.feed import render_events_json, render_rss_xml
+from newsbot.heartbeat import HeartbeatRunner
 from newsbot.main import build_default_orchestrator
 from newsbot.retraction_monitor import RetractionMonitor
 from newsbot.runtime import AutopilotRunner
@@ -22,6 +23,7 @@ retraction_monitor = RetractionMonitor(
     orchestrator=orchestrator,
     interval_seconds=settings.retraction_monitor_interval_seconds,
 )
+heartbeat_runner = HeartbeatRunner(interval_seconds=settings.heartbeat_interval_seconds)
 
 
 @asynccontextmanager
@@ -30,9 +32,12 @@ async def _lifespan(_app: FastAPI):
         await runner.start()
     if settings.retraction_monitor_enabled:
         await retraction_monitor.start()
+    if settings.heartbeat_enabled:
+        await heartbeat_runner.start()
     try:
         yield
     finally:
+        await heartbeat_runner.stop()
         await retraction_monitor.stop()
         await runner.stop()
 
@@ -286,3 +291,26 @@ async def retraction_monitor_stop(_auth: None = Depends(require_admin_auth)) -> 
 async def retraction_monitor_scan(_auth: None = Depends(require_admin_auth)) -> dict[str, int]:
     triggered = await retraction_monitor.scan_once()
     return {"triggered": triggered}
+
+
+@app.get("/admin/heartbeat")
+async def heartbeat_status(_auth: None = Depends(require_admin_auth)) -> dict:
+    return heartbeat_runner.status()
+
+
+@app.post("/admin/heartbeat/start")
+async def heartbeat_start(_auth: None = Depends(require_admin_auth)) -> dict:
+    started = await heartbeat_runner.start()
+    return {"started": started, "status": heartbeat_runner.status()}
+
+
+@app.post("/admin/heartbeat/stop")
+async def heartbeat_stop(_auth: None = Depends(require_admin_auth)) -> dict:
+    stopped = await heartbeat_runner.stop()
+    return {"stopped": stopped, "status": heartbeat_runner.status()}
+
+
+@app.post("/admin/heartbeat/send")
+async def heartbeat_send(_auth: None = Depends(require_admin_auth)) -> dict[str, bool]:
+    sent = await heartbeat_runner.send_once()
+    return {"sent": sent}
