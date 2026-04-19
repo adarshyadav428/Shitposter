@@ -25,6 +25,8 @@ This repository implements a production-oriented autonomous breaking-news system
 - API mode: starts autonomous autopilot loop by default.
 - Manual mode: call `/run-once` for deterministic single-cycle execution.
 - CLI mode: `python -m newsbot.main` runs forever with configured poll interval.
+- Optional admin auth: set `ADMIN_API_TOKEN` to protect all `/admin/*` endpoints.
+   - Use header `X-Admin-Token: <token>` or `Authorization: Bearer <token>`.
 
 ## Run Locally
 

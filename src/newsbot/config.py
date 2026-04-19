@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     retraction_monitor_interval_seconds: int = Field(
         default=300, alias="RETRACTION_MONITOR_INTERVAL_SECONDS"
     )
+    admin_api_token: str | None = Field(default=None, alias="ADMIN_API_TOKEN")
 
     global_pause: bool = Field(default=False, alias="GLOBAL_PAUSE")
 

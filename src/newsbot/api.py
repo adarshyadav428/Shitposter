@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from typing import Any
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import Depends, FastAPI, Header, HTTPException, Response
 
 from newsbot.config import settings
 from newsbot.feed import render_events_json, render_rss_xml
@@ -37,6 +38,23 @@ async def _lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="Autonomous News Broadcaster", version="0.1.0", lifespan=_lifespan)
+
+
+def require_admin_auth(
+    authorization: str | None = Header(default=None),
+    x_admin_token: str | None = Header(default=None),
+) -> None:
+    expected = settings.admin_api_token
+    if not expected:
+        return
+
+    bearer = None
+    if authorization and authorization.lower().startswith("bearer "):
+        bearer = authorization.split(" ", 1)[1].strip()
+
+    provided = x_admin_token or bearer
+    if provided != expected:
+        raise HTTPException(status_code=401, detail="admin_auth_required")
 
 
 @app.get("/health")
@@ -105,7 +123,7 @@ async def rss_xml() -> Response:
 
 
 @app.get("/admin/publications")
-async def publications(limit: int = 50) -> list[dict]:
+async def publications(limit: int = 50, _auth: None = Depends(require_admin_auth)) -> list[dict]:
     rows = orchestrator.store.list_publications(limit=limit)
     return [
         {
@@ -119,7 +137,9 @@ async def publications(limit: int = 50) -> list[dict]:
 
 
 @app.get("/admin/publication-failures")
-async def publication_failures(limit: int = 50) -> list[dict]:
+async def publication_failures(
+    limit: int = 50, _auth: None = Depends(require_admin_auth)
+) -> list[dict]:
     rows = orchestrator.store.list_failed_publications(limit=limit)
     return [
         {
@@ -134,23 +154,23 @@ async def publication_failures(limit: int = 50) -> list[dict]:
 
 
 @app.get("/admin/sources")
-async def sources() -> dict[str, float]:
+async def sources(_auth: None = Depends(require_admin_auth)) -> dict[str, float]:
     model = orchestrator.store.source_reputation
     return {k: float(v) for k, v in model.items()}
 
 
 @app.get("/admin/ingestors")
-async def ingestors() -> dict[str, dict[str, int | str | None]]:
+async def ingestors(_auth: None = Depends(require_admin_auth)) -> dict[str, dict[str, Any]]:
     return orchestrator.get_ingestor_stats()
 
 
 @app.get("/admin/circuit")
-async def circuit() -> dict:
+async def circuit(_auth: None = Depends(require_admin_auth)) -> dict:
     return orchestrator.circuit_breaker.status()
 
 
 @app.get("/admin/budget")
-async def budget() -> dict:
+async def budget(_auth: None = Depends(require_admin_auth)) -> dict:
     store = orchestrator.store
     return {
         "x_used": store.x_used,
@@ -161,19 +181,23 @@ async def budget() -> dict:
 
 
 @app.post("/admin/pause")
-async def pause() -> dict[str, bool]:
+async def pause(_auth: None = Depends(require_admin_auth)) -> dict[str, bool]:
     orchestrator.store.global_pause = True
     return {"paused": True}
 
 
 @app.post("/admin/resume")
-async def resume() -> dict[str, bool]:
+async def resume(_auth: None = Depends(require_admin_auth)) -> dict[str, bool]:
     orchestrator.store.global_pause = False
     return {"paused": False}
 
 
 @app.post("/admin/retract/{event_id}")
-async def retract(event_id: str, reason: str = "source corrected report") -> dict[str, bool]:
+async def retract(
+    event_id: str,
+    reason: str = "source corrected report",
+    _auth: None = Depends(require_admin_auth),
+) -> dict[str, bool]:
     triggered = await orchestrator.retract(event_id, reason)
     if orchestrator.store.get_event(event_id) is None:
         raise HTTPException(status_code=404, detail="event_not_found")
@@ -181,40 +205,40 @@ async def retract(event_id: str, reason: str = "source corrected report") -> dic
 
 
 @app.get("/admin/autopilot")
-async def autopilot_status() -> dict:
+async def autopilot_status(_auth: None = Depends(require_admin_auth)) -> dict:
     return runner.status()
 
 
 @app.post("/admin/autopilot/start")
-async def autopilot_start() -> dict:
+async def autopilot_start(_auth: None = Depends(require_admin_auth)) -> dict:
     started = await runner.start()
     return {"started": started, "status": runner.status()}
 
 
 @app.post("/admin/autopilot/stop")
-async def autopilot_stop() -> dict:
+async def autopilot_stop(_auth: None = Depends(require_admin_auth)) -> dict:
     stopped = await runner.stop()
     return {"stopped": stopped, "status": runner.status()}
 
 
 @app.get("/admin/retraction-monitor")
-async def retraction_monitor_status() -> dict:
+async def retraction_monitor_status(_auth: None = Depends(require_admin_auth)) -> dict:
     return retraction_monitor.status()
 
 
 @app.post("/admin/retraction-monitor/start")
-async def retraction_monitor_start() -> dict:
+async def retraction_monitor_start(_auth: None = Depends(require_admin_auth)) -> dict:
     started = await retraction_monitor.start()
     return {"started": started, "status": retraction_monitor.status()}
 
 
 @app.post("/admin/retraction-monitor/stop")
-async def retraction_monitor_stop() -> dict:
+async def retraction_monitor_stop(_auth: None = Depends(require_admin_auth)) -> dict:
     stopped = await retraction_monitor.stop()
     return {"stopped": stopped, "status": retraction_monitor.status()}
 
 
 @app.post("/admin/retraction-monitor/scan")
-async def retraction_monitor_scan() -> dict[str, int]:
+async def retraction_monitor_scan(_auth: None = Depends(require_admin_auth)) -> dict[str, int]:
     triggered = await retraction_monitor.scan_once()
     return {"triggered": triggered}
