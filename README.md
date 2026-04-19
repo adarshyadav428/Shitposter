@@ -44,6 +44,7 @@ This repository implements a production-oriented autonomous breaking-news system
 - Self-hosted deploy workflow: `.github/workflows/deploy-self-hosted.yml`
 - Production compose stack: `docker-compose.prod.yml`
 - Config preflight checker: `make predeploy`
+- Production template check: `make predeploy-prod`
 - Startup preflight gate: `ENFORCE_STARTUP_PREFLIGHT=true` (recommended)
 
 ## API

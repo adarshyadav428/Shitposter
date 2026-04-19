@@ -1,4 +1,4 @@
-.PHONY: install dev lint test run docker-build docker-up docker-down docker-up-prod smoke predeploy
+.PHONY: install dev lint test run docker-build docker-up docker-down docker-up-prod smoke predeploy predeploy-prod
 
 install:
 	pip install -e .[dev]
@@ -33,3 +33,6 @@ smoke:
 
 predeploy:
 	python scripts/predeploy_check.py
+
+predeploy-prod:
+	python scripts/predeploy_check.py --env-file .env.production.example

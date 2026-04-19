@@ -81,6 +81,7 @@ Before launching on a host, run local static preflight:
 
 ```bash
 make predeploy
+make predeploy-prod
 ```
 
 Runtime guard:
