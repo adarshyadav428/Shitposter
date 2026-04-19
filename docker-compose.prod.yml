@@ -1,27 +1,23 @@
 services:
   redis:
     image: redis:7-alpine
-    container_name: newsbot-redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     command: redis-server --save "" --appendonly no
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: autonomous-news-broadcaster:local
-    container_name: newsbot-app
+    image: ${NEWSBOT_IMAGE:-ghcr.io/owner/autonomous-news-broadcaster:latest}
     restart: unless-stopped
     env_file:
       - .env
     environment:
+      APP_ENV: prod
       STATE_SNAPSHOT_PATH: /app/.state/newsbot_state.json
       STATE_SQLITE_PATH: /app/.state/newsbot_state.sqlite
+      USE_MOCK_INGESTORS: "false"
+      ENABLE_REAL_RSS: "true"
     depends_on:
       - redis
     ports:
       - "8000:8000"
     volumes:
-      - ./.state:/app/.state
+      - ./state:/app/.state

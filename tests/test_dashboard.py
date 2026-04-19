@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from newsbot.api import app
+from newsbot.config import settings
 
 
 def test_root_redirects_to_dashboard() -> None:
@@ -30,3 +31,24 @@ def test_system_readiness_shape() -> None:
     assert "persistence" in payload
     assert "ingest" in payload
     assert "runners" in payload
+
+
+def test_liveness_probe() -> None:
+    client = TestClient(app)
+    response = client.get("/health/live")
+    assert response.status_code == 200
+    assert response.json()["status"] == "live"
+
+
+def test_readiness_probe_returns_503_when_autopilot_disabled() -> None:
+    original = settings.autopilot_enabled
+    settings.autopilot_enabled = False
+    try:
+        client = TestClient(app)
+        response = client.get("/health/ready")
+        assert response.status_code == 503
+        payload = response.json()
+        assert payload["ready"] is False
+        assert "autopilot disabled in config" in payload["issues"]
+    finally:
+        settings.autopilot_enabled = original

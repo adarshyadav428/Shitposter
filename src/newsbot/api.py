@@ -136,18 +136,7 @@ def _readiness_summary(issues: list[str]) -> str:
     return f"{len(issues)} issues detected"
 
 
-@app.get("/")
-async def index() -> RedirectResponse:
-    return RedirectResponse(url="/dashboard", status_code=307)
-
-
-@app.get("/dashboard")
-async def dashboard() -> HTMLResponse:
-    return HTMLResponse(content=render_dashboard_html())
-
-
-@app.get("/system/readiness")
-async def system_readiness() -> dict:
+def _build_system_readiness() -> dict:
     channels = _channel_statuses()
     persistence = _persistence_status()
     ingest = _ingest_status()
@@ -184,6 +173,33 @@ async def system_readiness() -> dict:
             "heartbeat": heartbeat_status_data,
         },
     }
+
+
+@app.get("/")
+async def index() -> RedirectResponse:
+    return RedirectResponse(url="/dashboard", status_code=307)
+
+
+@app.get("/dashboard")
+async def dashboard() -> HTMLResponse:
+    return HTMLResponse(content=render_dashboard_html())
+
+
+@app.get("/health/live")
+async def health_live() -> dict[str, str]:
+    return {"status": "live"}
+
+
+@app.get("/health/ready")
+async def health_ready(response: Response) -> dict:
+    payload = _build_system_readiness()
+    response.status_code = 200 if payload["ready"] else 503
+    return payload
+
+
+@app.get("/system/readiness")
+async def system_readiness() -> dict:
+    return _build_system_readiness()
 
 
 def require_admin_auth(

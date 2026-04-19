@@ -36,9 +36,18 @@ This repository implements a production-oriented autonomous breaking-news system
 3. Start API:
    - `uvicorn newsbot.api:app --reload`
 
+## Deployment
+
+- Production env template: `.env.production.example`
+- Deployment runbook: `DEPLOYMENT.md`
+- Release image workflow: `.github/workflows/release-image.yml`
+- Production compose stack: `docker-compose.prod.yml`
+
 ## API
 
 - `GET /health`
+- `GET /health/live`
+- `GET /health/ready`
 - `GET /metrics`
 - `POST /run-once`
 - `GET /stats`
