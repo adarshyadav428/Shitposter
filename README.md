@@ -39,6 +39,8 @@ This repository implements a production-oriented autonomous breaking-news system
 - `GET /health`
 - `GET /stats`
 - `GET /events`
+- `GET /events.json`
+- `GET /rss.xml`
 - `POST /admin/pause`
 - `POST /admin/resume`
 - `POST /admin/retract/{event_id}`

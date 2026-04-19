@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 
 from newsbot.config import settings
+from newsbot.feed import render_events_json, render_rss_xml
 from newsbot.main import build_default_orchestrator
 from newsbot.runtime import AutopilotRunner
 
@@ -73,6 +74,17 @@ async def events() -> list[dict]:
             }
         )
     return out
+
+
+@app.get("/events.json")
+async def events_json(limit: int = 100) -> list[dict]:
+    return render_events_json(orchestrator.store, limit=limit)
+
+
+@app.get("/rss.xml")
+async def rss_xml() -> Response:
+    xml = render_rss_xml(orchestrator.store, site_url="http://localhost:8000")
+    return Response(content=xml, media_type="application/rss+xml")
 
 
 @app.get("/admin/publications")
