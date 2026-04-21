@@ -7,6 +7,7 @@ __pycache__/
 *.pyd
 .env
 newsbot.db
+.state/
 dist/
 build/
 *.egg-info/

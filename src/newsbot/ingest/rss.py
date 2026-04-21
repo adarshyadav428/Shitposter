@@ -4,10 +4,12 @@ import hashlib
 from datetime import datetime, timezone
 from typing import Iterable
 
+import aiohttp
 import feedparser
 
 from newsbot.domain import RawEvent, Sector, Witness
 from newsbot.ingest.base import Ingestor, SourceSpec
+from newsbot.utils.retry import async_retry
 
 
 class RSSIngestor(Ingestor):
@@ -17,7 +19,25 @@ class RSSIngestor(Ingestor):
         self.sector = sector
 
     async def poll(self) -> Iterable[RawEvent]:
-        parsed = feedparser.parse(self.feed_url)
+        timeout = aiohttp.ClientTimeout(total=10)
+        headers = {"User-Agent": "newsbot/1.0 (+https://github.com/adarshyadav428/Shitposter)"}
+
+        async def _fetch_payload() -> bytes:
+            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
+                async with session.get(self.feed_url) as response:
+                    if response.status >= 400:
+                        raise RuntimeError(f"rss_http_{response.status}")
+                    return await response.read()
+
+        try:
+            payload = await async_retry(_fetch_payload, attempts=3, initial_delay=0.25)
+        except Exception:
+            return []
+
+        parsed = feedparser.parse(payload)
+        if getattr(parsed, "bozo", False) and not parsed.entries:
+            return []
+
         events: list[RawEvent] = []
         now = datetime.now(timezone.utc)
         for entry in parsed.entries[:10]:
